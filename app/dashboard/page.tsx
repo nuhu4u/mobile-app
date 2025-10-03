@@ -17,6 +17,7 @@ import { ApiConfigModal } from '@/components/common/ApiConfigModal';
 import { VoteHistoryList } from '@/components/dashboard/vote-history-list';
 import { useVoteHistory } from '@/hooks/use-vote-history';
 import { VotingModal } from '@/components/voting/voting-modal';
+import { BiometricStatusComponent } from '@/components/biometric/BiometricStatus';
 
 interface VoterInfo {
   name: string;
@@ -746,6 +747,16 @@ export default function DashboardScreen() {
             </Text>
           </View>
         </View>
+
+        {/* Biometric Status Card - Only show if not enrolled */}
+        <BiometricStatusComponent 
+          compact={true}
+          showMobileCTA={false}
+          showOnlyIfNotEnrolled={true}
+          onStatusChange={(status) => {
+            console.log('🔐 Dashboard: Biometric status changed:', status);
+          }}
+        />
 
         {/* Vote Position Card */}
         <View style={styles.votePositionCard}>

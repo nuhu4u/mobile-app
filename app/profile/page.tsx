@@ -13,8 +13,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/store/auth-store';
-import { useBiometric } from '@/hooks/use-biometric';
 import { apiConfig } from '@/lib/config';
+import { BiometricStatusComponent } from '@/components/biometric/BiometricStatus';
 
 export default function ProfileScreen() {
   const { user, isAuthenticated, logout, token } = useAuthStore();
@@ -32,17 +32,7 @@ export default function ProfileScreen() {
   const [partialNIN, setPartialNIN] = useState<string>('••••••••••••');
   const [loadingNIN, setLoadingNIN] = useState(false);
   
-  // Biometric functionality
-  const {
-    biometricStatus,
-    loading: biometricLoading,
-    error: biometricError,
-    isEnrolled,
-    enrollBiometric,
-    verifyBiometric,
-    deleteBiometric,
-    refreshStatus: refreshBiometricStatus,
-  } = useBiometric();
+  // Biometric functionality - now handled by BiometricStatusComponent
 
   // Initialize NIN data
   useEffect(() => {
@@ -251,10 +241,7 @@ export default function ProfileScreen() {
     setRefreshing(true);
     setError(null);
     
-    // Refresh biometric status
-    await refreshBiometricStatus();
-    
-    // Simulate additional refresh time
+    // Simulate refresh time
     await new Promise(resolve => setTimeout(resolve, 500));
     setRefreshing(false);
   };
@@ -325,75 +312,7 @@ export default function ProfileScreen() {
     );
   };
 
-  const handleBiometricEnroll = async () => {
-    try {
-      // Show double capture alert
-      Alert.alert(
-        'Biometric Enrollment',
-        'For security, you need to capture your fingerprint twice. This ensures accurate verification during voting.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Start Enrollment', 
-            onPress: async () => {
-              try {
-                // First capture
-                Alert.alert('First Capture', 'Please place your finger on the sensor for the first capture...');
-                await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate first capture
-                
-                // Second capture
-                Alert.alert('Second Capture', 'Please place your finger on the sensor again for verification...');
-                await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate second capture
-                
-                // Enroll with both fingerprints
-                await enrollBiometric();
-                Alert.alert('Success', 'Biometric fingerprint enrolled successfully with double verification!');
-              } catch (error: any) {
-                Alert.alert('Error', error.message || 'Failed to enroll biometric');
-              }
-            }
-          }
-        ]
-      );
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to enroll biometric');
-    }
-  };
-
-  const handleBiometricDelete = () => {
-    Alert.alert(
-      'Delete Biometric Data',
-      'Are you sure you want to delete your biometric data? This will require re-enrollment for voting.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteBiometric();
-              Alert.alert('Success', 'Biometric data deleted successfully!');
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to delete biometric data');
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  const handleBiometricVerify = async () => {
-    try {
-      const isVerified = await verifyBiometric();
-      if (isVerified) {
-        Alert.alert('Success', 'Biometric verification successful!');
-      } else {
-        Alert.alert('Failed', 'Biometric verification failed. Please try again.');
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to verify biometric');
-    }
-  };
+  // Biometric functions moved to BiometricStatusComponent
 
   if (!isAuthenticated) {
     return (
@@ -482,16 +401,7 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Biometric Error Display */}
-        {biometricError && (
-          <View style={styles.errorCard}>
-            <Ionicons name="alert-circle" size={20} color="#dc2626" />
-            <Text style={styles.errorText}>{biometricError}</Text>
-            <TouchableOpacity onPress={() => refreshBiometricStatus()}>
-              <Ionicons name="refresh" size={20} color="#dc2626" />
-            </TouchableOpacity>
-          </View>
-        )}
+        {/* Biometric Error Display - now handled by BiometricStatusComponent */}
 
         {/* Personal Information */}
         <View style={styles.section}>
@@ -681,95 +591,12 @@ export default function ProfileScreen() {
 
         {/* Biometric Security */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Biometric Security</Text>
-          
-          <View style={styles.infoCard}>
-            <View style={styles.biometricStatusRow}>
-              <View style={styles.biometricStatusLeft}>
-                <Ionicons 
-                  name={isEnrolled ? "finger-print" : "finger-print-outline"} 
-                  size={24} 
-                  color={isEnrolled ? "#16a34a" : "#64748b"} 
-                />
-                <View style={styles.biometricStatusContent}>
-                  <Text style={styles.biometricStatusTitle}>
-                    {isEnrolled ? 'Biometric Enrolled' : 'Biometric Not Enrolled'}
-                  </Text>
-                  <Text style={styles.biometricStatusDescription}>
-                    {isEnrolled 
-                      ? `Registered on ${biometricStatus?.biometric_registered_at ? new Date(biometricStatus.biometric_registered_at).toLocaleDateString() : 'Unknown date'}`
-                      : 'Register your fingerprint for secure voting'
-                    }
-                  </Text>
-                  {biometricStatus?.biometric_failed_attempts && biometricStatus.biometric_failed_attempts > 0 && (
-                    <Text style={styles.biometricWarningText}>
-                      Failed attempts: {biometricStatus.biometric_failed_attempts}
-                    </Text>
-                  )}
-                </View>
-              </View>
-              
-              <View style={styles.biometricStatusRight}>
-                {isEnrolled ? (
-                  <View style={styles.biometricStatusBadge}>
-                    <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
-                    <Text style={styles.biometricStatusBadgeText}>Active</Text>
-                  </View>
-                ) : (
-                  <View style={styles.biometricStatusBadgeInactive}>
-                    <Ionicons name="warning" size={16} color="#f59e0b" />
-                    <Text style={styles.biometricStatusBadgeTextInactive}>Required</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-            
-            {/* Biometric Actions */}
-            <View style={styles.biometricActions}>
-              {!isEnrolled ? (
-                <TouchableOpacity 
-                  style={[styles.biometricButton, styles.biometricButtonPrimary]}
-                  onPress={handleBiometricEnroll}
-                  disabled={biometricLoading}
-                >
-                  {biometricLoading ? (
-                    <ActivityIndicator size="small" color="white" />
-                  ) : (
-                    <>
-                      <Ionicons name="add" size={20} color="white" />
-                      <Text style={styles.biometricButtonText}>Enroll Biometric</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.biometricButtonRow}>
-                  <TouchableOpacity 
-                    style={[styles.biometricButton, styles.biometricButtonSecondary]}
-                    onPress={handleBiometricVerify}
-                    disabled={biometricLoading}
-                  >
-                    {biometricLoading ? (
-                      <ActivityIndicator size="small" color="#3b82f6" />
-                    ) : (
-                      <>
-                        <Ionicons name="checkmark" size={20} color="#3b82f6" />
-                        <Text style={[styles.biometricButtonText, styles.biometricButtonTextSecondary]}>Test</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[styles.biometricButton, styles.biometricButtonDanger]}
-                    onPress={handleBiometricDelete}
-                    disabled={biometricLoading}
-                  >
-                    <Ionicons name="trash" size={20} color="#dc2626" />
-                    <Text style={[styles.biometricButtonText, styles.biometricButtonTextDanger]}>Delete</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          </View>
+          <BiometricStatusComponent 
+            showMobileCTA={true}
+            onStatusChange={(status) => {
+              console.log('🔐 Profile: Biometric status changed:', status);
+            }}
+          />
         </View>
 
         {/* Account Actions */}
