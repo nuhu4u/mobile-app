@@ -4,6 +4,7 @@
  */
 
 import { apiConfig } from '@/lib/config';
+import { dynamicApiManager } from './dynamic-api-manager';
 import { 
   LoginCredentials, 
   RegisterData, 
@@ -36,6 +37,22 @@ class AuthService {
     this.timeout = apiConfig.timeout;
     this.retryAttempts = apiConfig.retryAttempts;
     this.retryDelay = apiConfig.retryDelay;
+    
+    // Register with dynamic API manager
+    this.registerWithDynamicManager();
+  }
+
+  /**
+   * Register this service with the dynamic API manager
+   */
+  private registerWithDynamicManager(): void {
+    dynamicApiManager.registerService('AuthService', {
+      updateBaseUrl: (newUrl: string) => {
+        this.baseUrl = newUrl;
+        console.log(`🔄 AuthService URL updated to: ${newUrl}`);
+      },
+      getBaseUrl: () => this.baseUrl
+    });
   }
 
   private async makeRequest<T>(
@@ -241,7 +258,7 @@ class AuthService {
    * Get current user profile
    */
   async getProfile(token: string): Promise<ApiResponse<User>> {
-    return this.makeRequest<User>('/auth/profile', {
+    return this.makeRequest<User>('/auth/me', {
       method: 'GET',
       headers: this.getAuthHeaders(token),
     });
@@ -254,7 +271,7 @@ class AuthService {
     updates: Partial<User>, 
     token: string
   ): Promise<ApiResponse<User>> {
-    return this.makeRequest<User>('/auth/profile', {
+    return this.makeRequest<User>('/auth/me', {
       method: 'PUT',
       headers: this.getAuthHeaders(token),
       body: JSON.stringify(updates),

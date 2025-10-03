@@ -34,7 +34,7 @@ export default function LoginScreen() {
   useEffect(() => {
     if (isAuthenticated) {
       console.log('✅ User is already authenticated, redirecting to dashboard');
-      router.replace('/dashboard/page');
+      router.replace('/(tabs)/dashboard');
     }
   }, [isAuthenticated]);
 
@@ -106,11 +106,21 @@ export default function LoginScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Ionicons name="balloon-outline" size={48} color="#2563eb" />
+          <TouchableOpacity 
+            style={styles.logoContainer}
+            onPress={() => router.push('/')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.logoIconContainer}>
+              <Ionicons name="ballot-box-box" size={48} color="#2563eb" />
+              <View style={styles.logoBadge}>
+                <Ionicons name="checkmark" size={16} color="white" />
+              </View>
+            </View>
             <Text style={styles.logoText}>Nigerian E-Voting Portal</Text>
             <Text style={styles.subtitle}>Secure • Transparent • Decentralized</Text>
-          </View>
+            <Text style={styles.tapHint}>Tap logo to go home</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Login Form */}
@@ -276,6 +286,35 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
+  },
+  logoIconContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#10b981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  tapHint: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   logoText: {
     fontSize: 24,

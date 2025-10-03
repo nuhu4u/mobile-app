@@ -2,7 +2,7 @@ import { AppConfig } from '@/types/common';
 
 // App configuration
 export const config: AppConfig = {
-  apiUrl: process.env.EXPO_PUBLIC_API_URL || 'http://10.226.155.194:3001/api',
+  apiUrl: process.env.EXPO_PUBLIC_API_URL || 'http://192.168.137.1:3001/api',
   blockchainNetwork: process.env.EXPO_PUBLIC_BLOCKCHAIN_NETWORK || '10.226.155.194',
   appVersion: '1.0.0',
   environment: (process.env.EXPO_PUBLIC_ENVIRONMENT as 'development' | 'staging' | 'production') || 'development',

@@ -576,14 +576,28 @@ export default function RegisterPage() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={20} color="#3b82f6" />
-            <Text style={styles.backButtonText}>Back to Home</Text>
+          <TouchableOpacity 
+            style={styles.logoContainer}
+            onPress={() => router.push('/')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.logoIconContainer}>
+              <Ionicons name="ballot-box-box" size={48} color="#2563eb" />
+              <View style={styles.logoBadge}>
+                <Ionicons name="checkmark" size={16} color="white" />
+              </View>
+            </View>
+            <Text style={styles.logoText}>Nigerian E-Voting Portal</Text>
+            <Text style={styles.subtitle}>Secure • Transparent • Decentralized</Text>
+            <Text style={styles.tapHint}>Tap logo to go home</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Voter Registration</Text>
-          <Text style={styles.headerSubtitle}>
-            Complete the form below to register as a voter in the blockchain-based voting system
-          </Text>
+          
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Voter Registration</Text>
+            <Text style={styles.headerSubtitle}>
+              Complete the form below to register as a voter in the blockchain-based voting system
+            </Text>
+          </View>
         </View>
 
         {/* Error Alert */}
@@ -1139,6 +1153,56 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 24,
+    alignItems: 'center',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logoIconContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#10b981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  logoText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#64748b',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  tapHint: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  headerContent: {
+    alignItems: 'center',
   },
   backButton: {
     flexDirection: 'row',

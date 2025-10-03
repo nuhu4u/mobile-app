@@ -18,7 +18,7 @@ const Text = ({ children, ...props }: any) => React.createElement('span', props,
 const ScrollView = ({ children, ...props }: any) => React.createElement('div', props, children);
 const TouchableOpacity = ({ children, ...props }: any) => React.createElement('button', props, children);
 const Image = ({ ...props }: any) => React.createElement('img', props);
-const Alert = { alert: jest.fn() };
+const Alert = { alert: (message: string) => console.log('Alert:', message) };
 
 const Card = ({ children, ...props }: any) => React.createElement('div', props, children);
 const Button = ({ children, ...props }: any) => React.createElement('button', props, children);
@@ -116,15 +116,6 @@ export interface ProfileFormProps {
   isLoading: boolean;
 }
 
-export interface ProfileStatsProps {
-  profile: UserProfile;
-  stats: {
-    totalVotes: number;
-    electionsParticipated: number;
-    accountAge: number;
-    lastLogin: string;
-  };
-}
 
 /**
  * Profile Header Component
@@ -577,37 +568,6 @@ export function ProfileForm({
   );
 }
 
-/**
- * Profile Stats Component
- */
-export function ProfileStats({
-  profile,
-  stats,
-}: ProfileStatsProps) {
-  return React.createElement(Card, { className: 'p-6' },
-    React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-4' }, 'Profile Statistics'),
-    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4' },
-      React.createElement('div', { className: 'text-center' },
-        React.createElement('div', { className: 'text-2xl font-bold text-blue-600' }, stats.totalVotes),
-        React.createElement('div', { className: 'text-sm text-gray-600' }, 'Total Votes')
-      ),
-      React.createElement('div', { className: 'text-center' },
-        React.createElement('div', { className: 'text-2xl font-bold text-green-600' }, stats.electionsParticipated),
-        React.createElement('div', { className: 'text-sm text-gray-600' }, 'Elections Participated')
-      ),
-      React.createElement('div', { className: 'text-center' },
-        React.createElement('div', { className: 'text-2xl font-bold text-purple-600' }, `${stats.accountAge} days`),
-        React.createElement('div', { className: 'text-sm text-gray-600' }, 'Account Age')
-      ),
-      React.createElement('div', { className: 'text-center' },
-        React.createElement('div', { className: 'text-2xl font-bold text-orange-600' }, 
-          new Date(stats.lastLogin).toLocaleDateString()
-        ),
-        React.createElement('div', { className: 'text-sm text-gray-600' }, 'Last Login')
-      )
-    )
-  );
-}
 
 /**
  * Main Profile Section Component
@@ -642,13 +602,6 @@ export function VoterProfileSection({
     setIsEditing(true);
   };
 
-  // Mock stats
-  const stats = {
-    totalVotes: 15,
-    electionsParticipated: 8,
-    accountAge: 365,
-    lastLogin: new Date().toISOString()
-  };
 
   return React.createElement('div', { className: `space-y-6 ${className}` },
     // Profile Header
@@ -668,9 +621,6 @@ export function VoterProfileSection({
         isLoading
       }) :
       React.createElement(React.Fragment, null,
-        // Profile Stats
-        React.createElement(ProfileStats, { profile, stats }),
-
         // Action Buttons
         React.createElement('div', { className: 'flex justify-end space-x-4' },
           React.createElement(Button, {
@@ -686,3 +636,633 @@ export function VoterProfileSection({
 }
 
 export default VoterProfileSection;
+
+            value: formData.lastName,
+
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('lastName', e.target.value),
+
+            className: `w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+
+              errors.lastName ? 'border-red-300' : 'border-gray-300'
+
+            }`,
+
+            placeholder: 'Enter last name'
+
+          }),
+
+          errors.lastName && React.createElement('p', { className: 'text-red-500 text-sm mt-1' }, errors.lastName)
+
+        ),
+
+
+
+        React.createElement('div', null,
+
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Email'),
+
+          React.createElement(Input, {
+
+            type: 'email',
+
+            value: formData.email,
+
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('email', e.target.value),
+
+            className: `w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+
+              errors.email ? 'border-red-300' : 'border-gray-300'
+
+            }`,
+
+            placeholder: 'Enter email address'
+
+          }),
+
+          errors.email && React.createElement('p', { className: 'text-red-500 text-sm mt-1' }, errors.email)
+
+        ),
+
+
+
+        React.createElement('div', null,
+
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Phone'),
+
+          React.createElement(Input, {
+
+            type: 'tel',
+
+            value: formData.phone,
+
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('phone', e.target.value),
+
+            className: `w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+
+              errors.phone ? 'border-red-300' : 'border-gray-300'
+
+            }`,
+
+            placeholder: 'Enter phone number'
+
+          }),
+
+          errors.phone && React.createElement('p', { className: 'text-red-500 text-sm mt-1' }, errors.phone)
+
+        ),
+
+
+
+        React.createElement('div', null,
+
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Date of Birth'),
+
+          React.createElement(Input, {
+
+            type: 'date',
+
+            value: formData.dateOfBirth,
+
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('dateOfBirth', e.target.value),
+
+            className: `w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+
+              errors.dateOfBirth ? 'border-red-300' : 'border-gray-300'
+
+            }`
+
+          }),
+
+          errors.dateOfBirth && React.createElement('p', { className: 'text-red-500 text-sm mt-1' }, errors.dateOfBirth)
+
+        ),
+
+
+
+        React.createElement('div', null,
+
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'NIN'),
+
+          React.createElement(Input, {
+
+            type: 'text',
+
+            value: formData.nin,
+
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('nin', e.target.value),
+
+            className: `w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+
+              errors.nin ? 'border-red-300' : 'border-gray-300'
+
+            }`,
+
+            placeholder: 'Enter NIN'
+
+          }),
+
+          errors.nin && React.createElement('p', { className: 'text-red-500 text-sm mt-1' }, errors.nin)
+
+        )
+
+      )
+
+    ),
+
+
+
+    // Address Information
+
+    React.createElement(Card, { className: 'p-6' },
+
+      React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-4' }, 'Address Information'),
+
+      React.createElement('div', { className: 'space-y-4' },
+
+        React.createElement('div', null,
+
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Address'),
+
+          React.createElement(Input, {
+
+            type: 'text',
+
+            value: formData.address,
+
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('address', e.target.value),
+
+            className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
+
+            placeholder: 'Enter full address'
+
+          })
+
+        ),
+
+
+
+        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+
+          React.createElement('div', null,
+
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'State'),
+
+            React.createElement('select', {
+
+              value: formData.state,
+
+              onChange: (e: React.ChangeEvent<HTMLSelectElement>) => handleInputChange('state', e.target.value),
+
+              className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+
+            },
+
+              React.createElement('option', { value: '' }, 'Select State'),
+
+              React.createElement('option', { value: 'Lagos' }, 'Lagos'),
+
+              React.createElement('option', { value: 'Abuja' }, 'Abuja'),
+
+              React.createElement('option', { value: 'Kano' }, 'Kano')
+
+            )
+
+          ),
+
+
+
+          React.createElement('div', null,
+
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'LGA'),
+
+            React.createElement('select', {
+
+              value: formData.lga,
+
+              onChange: (e: React.ChangeEvent<HTMLSelectElement>) => handleInputChange('lga', e.target.value),
+
+              className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+
+            },
+
+              React.createElement('option', { value: '' }, 'Select LGA'),
+
+              React.createElement('option', { value: 'Eti-Osa' }, 'Eti-Osa'),
+
+              React.createElement('option', { value: 'Ikeja' }, 'Ikeja'),
+
+              React.createElement('option', { value: 'Surulere' }, 'Surulere')
+
+            )
+
+          ),
+
+
+
+          React.createElement('div', null,
+
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Ward'),
+
+            React.createElement(Input, {
+
+              type: 'text',
+
+              value: formData.ward,
+
+              onChange: (e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('ward', e.target.value),
+
+              className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
+
+              placeholder: 'Enter ward'
+
+            })
+
+          ),
+
+
+
+          React.createElement('div', null,
+
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Polling Unit'),
+
+            React.createElement(Input, {
+
+              type: 'text',
+
+              value: formData.pollingUnit,
+
+              onChange: (e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('pollingUnit', e.target.value),
+
+              className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
+
+              placeholder: 'Enter polling unit'
+
+            })
+
+          )
+
+        )
+
+      )
+
+    ),
+
+
+
+    // Preferences
+
+    React.createElement(Card, { className: 'p-6' },
+
+      React.createElement('h3', { className: 'text-lg font-semibold text-gray-900 mb-4' }, 'Preferences'),
+
+      React.createElement('div', { className: 'space-y-4' },
+
+        React.createElement('div', { className: 'flex items-center justify-between' },
+
+          React.createElement('div', null,
+
+            React.createElement('label', { className: 'text-sm font-medium text-gray-700' }, 'Push Notifications'),
+
+            React.createElement('p', { className: 'text-xs text-gray-500' }, 'Receive notifications about elections and updates')
+
+          ),
+
+          React.createElement('input', {
+
+            type: 'checkbox',
+
+            checked: formData.preferences.notifications,
+
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => handlePreferenceChange('notifications', e.target.checked),
+
+            className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+
+          })
+
+        ),
+
+
+
+        React.createElement('div', { className: 'flex items-center justify-between' },
+
+          React.createElement('div', null,
+
+            React.createElement('label', { className: 'text-sm font-medium text-gray-700' }, 'Email Updates'),
+
+            React.createElement('p', { className: 'text-xs text-gray-500' }, 'Receive updates via email')
+
+          ),
+
+          React.createElement('input', {
+
+            type: 'checkbox',
+
+            checked: formData.preferences.emailUpdates,
+
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => handlePreferenceChange('emailUpdates', e.target.checked),
+
+            className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+
+          })
+
+        ),
+
+
+
+        React.createElement('div', { className: 'flex items-center justify-between' },
+
+          React.createElement('div', null,
+
+            React.createElement('label', { className: 'text-sm font-medium text-gray-700' }, 'SMS Updates'),
+
+            React.createElement('p', { className: 'text-xs text-gray-500' }, 'Receive updates via SMS')
+
+          ),
+
+          React.createElement('input', {
+
+            type: 'checkbox',
+
+            checked: formData.preferences.smsUpdates,
+
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => handlePreferenceChange('smsUpdates', e.target.checked),
+
+            className: 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+
+          })
+
+        ),
+
+
+
+        React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+
+          React.createElement('div', null,
+
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Language'),
+
+            React.createElement('select', {
+
+              value: formData.preferences.language,
+
+              onChange: (e: React.ChangeEvent<HTMLSelectElement>) => handlePreferenceChange('language', e.target.value),
+
+              className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+
+            },
+
+              React.createElement('option', { value: 'en' }, 'English'),
+
+              React.createElement('option', { value: 'yo' }, 'Yoruba'),
+
+              React.createElement('option', { value: 'ig' }, 'Igbo'),
+
+              React.createElement('option', { value: 'ha' }, 'Hausa')
+
+            )
+
+          ),
+
+
+
+          React.createElement('div', null,
+
+            React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Theme'),
+
+            React.createElement('select', {
+
+              value: formData.preferences.theme,
+
+              onChange: (e: React.ChangeEvent<HTMLSelectElement>) => handlePreferenceChange('theme', e.target.value),
+
+              className: 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+
+            },
+
+              React.createElement('option', { value: 'light' }, 'Light'),
+
+              React.createElement('option', { value: 'dark' }, 'Dark'),
+
+              React.createElement('option', { value: 'auto' }, 'Auto')
+
+            )
+
+          )
+
+        )
+
+      )
+
+    ),
+
+
+
+    // Form Actions
+
+    React.createElement('div', { className: 'flex justify-end space-x-4' },
+
+      React.createElement(Button, {
+
+        type: 'button',
+
+        onClick: onCancel,
+
+        className: 'px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center space-x-2'
+
+      },
+
+        React.createElement(Cancel, null),
+
+        React.createElement(Text, null, 'Cancel')
+
+      ),
+
+      React.createElement(Button, {
+
+        type: 'submit',
+
+        disabled: isLoading,
+
+        className: 'px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2'
+
+      },
+
+        isLoading ? 
+
+          React.createElement('div', { className: 'animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full' }) :
+
+          React.createElement(Save, null),
+
+        React.createElement(Text, null, isLoading ? 'Saving...' : 'Save Changes')
+
+      )
+
+    )
+
+  );
+
+}
+
+
+
+/**
+
+ * Profile Stats Component
+
+ */
+
+
+
+
+/**
+
+ * Main Profile Section Component
+
+ */
+
+export function VoterProfileSection({
+
+  profile,
+
+  onUpdate,
+
+  onImageUpload,
+
+  onDownloadProfile,
+
+  className = '',
+
+}: ProfileSectionProps) {
+
+  const [isEditing, setIsEditing] = React.useState(false);
+
+  const [isLoading, setIsLoading] = React.useState(false);
+
+
+
+  const handleSave = async (data: ProfileFormData) => {
+
+    setIsLoading(true);
+
+    try {
+
+      await onUpdate(data);
+
+      setIsEditing(false);
+
+    } catch (error) {
+
+      console.error('Profile update failed:', error);
+
+    } finally {
+
+      setIsLoading(false);
+
+    }
+
+  };
+
+
+
+  const handleCancel = () => {
+
+    setIsEditing(false);
+
+  };
+
+
+
+  const handleEdit = () => {
+
+    setIsEditing(true);
+
+  };
+
+
+
+  // Mock stats
+
+  const stats = {
+
+    totalVotes: 15,
+
+    electionsParticipated: 8,
+
+    accountAge: 365,
+
+    lastLogin: new Date().toISOString()
+
+  };
+
+
+
+  return React.createElement('div', { className: `space-y-6 ${className}` },
+
+    // Profile Header
+
+    React.createElement(ProfileHeader, {
+
+      profile,
+
+      onEdit: handleEdit,
+
+      onImageUpload,
+
+      isEditing
+
+    }),
+
+
+
+    // Profile Content
+
+    isEditing ? 
+
+      React.createElement(ProfileForm, {
+
+        profile,
+
+        onSave: handleSave,
+
+        onCancel: handleCancel,
+
+        isLoading
+
+      }) :
+
+      React.createElement(React.Fragment, null,
+
+
+
+
+        // Action Buttons
+
+        React.createElement('div', { className: 'flex justify-end space-x-4' },
+
+          React.createElement(Button, {
+
+            onClick: onDownloadProfile,
+
+            className: 'px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center space-x-2'
+
+          },
+
+            React.createElement(Download, null),
+
+            React.createElement(Text, null, 'Download Profile')
+
+          )
+
+        )
+
+      )
+
+  );
+
+}
+
+
+
+export default VoterProfileSection;
+
+

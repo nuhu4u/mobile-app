@@ -2,11 +2,22 @@ import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import AutoNetworkStatus from '@/components/network/auto-network-status';
+import { useAuthStore } from '@/store/auth-store';
 
 export default function HomePage() {
+  const { isAuthenticated } = useAuthStore();
   const [elections, setElections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('🔐 User is authenticated, redirecting to dashboard');
+      router.replace('/(tabs)/dashboard');
+    }
+  }, [isAuthenticated]);
 
   // Mock data for now - will replace with API calls
   useEffect(() => {
@@ -79,6 +90,11 @@ export default function HomePage() {
               </View>
             </TouchableOpacity>
           </View>
+        </View>
+        
+        {/* Network Status */}
+        <View style={styles.networkStatusContainer}>
+          <AutoNetworkStatus showDetails={true} />
         </View>
       </View>
 
@@ -286,7 +302,7 @@ export default function HomePage() {
                   <View style={styles.electionActions}>
                     <TouchableOpacity
                       style={styles.electionActionButton}
-                      onPress={() => router.push('/(tabs)/elections')}
+                      onPress={() => router.push(`/results/${election._id}`)}
                     >
                       <View style={styles.electionActionContent}>
                         <Ionicons name="trending-up" size={16} color="white" />
@@ -388,6 +404,10 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 16,
     paddingHorizontal: 16,
+  },
+  networkStatusContainer: {
+    marginTop: 16,
+    paddingHorizontal: 4,
   },
   headerContent: {
     flexDirection: 'column',

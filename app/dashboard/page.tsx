@@ -708,7 +708,13 @@ export default function DashboardScreen() {
 
           {/* View Full Profile Button */}
           <View style={styles.profileButtonContainer}>
-            <TouchableOpacity style={styles.profileButton}>
+            <TouchableOpacity 
+              style={styles.profileButton}
+              onPress={() => {
+                console.log('👤 Dashboard: Navigating to profile page');
+                router.push('/profile/page');
+              }}
+            >
               <Ionicons name="person" size={16} color="#64748b" />
               <Text style={styles.profileButtonText}>View Full Profile</Text>
             </TouchableOpacity>
@@ -789,7 +795,7 @@ export default function DashboardScreen() {
             onPress={() => setActiveTab('elections')}
           >
             <Ionicons 
-              name="ballot" 
+              name="ballot-box" 
               size={18} 
               color={activeTab === 'elections' ? '#3b82f6' : '#64748b'} 
             />
@@ -834,7 +840,7 @@ export default function DashboardScreen() {
             </View>
             {elections.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="ballot" size={48} color="#9ca3af" />
+                <Ionicons name="ballot-box" size={48} color="#9ca3af" />
                 <Text style={styles.emptyTitle}>No Active Elections</Text>
                 <Text style={styles.emptyText}>There are currently no elections available for voting.</Text>
               </View>
@@ -933,7 +939,7 @@ export default function DashboardScreen() {
             }}
             onViewResults={(electionId) => {
               console.log('View Results for election:', electionId);
-              // Navigate to results page
+              router.push(`/results/${electionId}`);
             }}
             onExploreBlockchain={(txHash) => {
               console.log('Explore Blockchain for tx:', txHash);

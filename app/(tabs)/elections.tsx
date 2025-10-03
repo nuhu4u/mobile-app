@@ -354,6 +354,13 @@ export default function ElectionsScreen() {
                   <Ionicons name="eye" size={16} color="white" />
                   <Text style={styles.actionButtonText}>View Details</Text>
                 </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.actionButton, styles.resultsButton]}
+                  onPress={() => router.push(`/results/${election._id}`)}
+                >
+                  <Ionicons name="bar-chart" size={16} color="white" />
+                  <Text style={styles.actionButtonText}>View Results</Text>
+                </TouchableOpacity>
                 {election.status === 'ONGOING' && (
                   <TouchableOpacity 
                     style={[styles.actionButton, styles.voteButton]}
@@ -765,6 +772,9 @@ const styles = StyleSheet.create({
   },
   voteButton: {
     backgroundColor: '#16a34a',
+  },
+  resultsButton: {
+    backgroundColor: '#8B5CF6',
   },
   actionButtonText: {
     color: 'white',

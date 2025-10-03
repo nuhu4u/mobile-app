@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth-store';
+import { useBiometric } from '@/hooks/use-biometric';
 
 const { width, height } = Dimensions.get('window');
 
@@ -98,7 +99,9 @@ export const VotingModal: React.FC<VotingModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(height));
+  const [biometricVerified, setBiometricVerified] = useState(false);
   const { token } = useAuthStore();
+  const { verifyBiometricForVoting, isEnrolled } = useBiometric();
 
   React.useEffect(() => {
     if (isOpen) {
@@ -135,10 +138,48 @@ export const VotingModal: React.FC<VotingModalProps> = ({
   const handleVoteSubmission = async () => {
     if (!selectedCandidate || !election) return;
     
+    // Check if biometric is enrolled
+    if (!isEnrolled) {
+      Alert.alert(
+        'Biometric Required',
+        'You must enroll your biometric fingerprint before voting. Please go to your profile to enroll.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    // Verify biometric before voting
+    try {
+      Alert.alert(
+        'Biometric Verification',
+        'Please verify your identity with your fingerprint to cast your vote.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Verify & Vote', 
+            onPress: async () => {
+              try {
+                const biometricData = await verifyBiometricForVoting(election?.id);
+                setBiometricVerified(true);
+                await submitVoteWithBiometric(biometricData);
+              } catch (error: any) {
+                Alert.alert('Verification Failed', error.message || 'Biometric verification failed');
+              }
+            }
+          }
+        ]
+      );
+    } catch (error: any) {
+      console.error('Biometric verification error:', error);
+      Alert.alert('Error', 'Failed to verify biometric');
+    }
+  };
+
+  const submitVoteWithBiometric = async (biometricData: any) => {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://172.20.10.2:3001/api'}/elections/${election.id}/vote`, {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.148:3001/api'}/elections/${election.id}/vote`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -146,6 +187,9 @@ export const VotingModal: React.FC<VotingModalProps> = ({
         },
         body: JSON.stringify({
           candidate_id: selectedCandidate,
+          biometric_hash: biometricData.biometric_hash,
+          device_id: biometricData.device_id,
+          timestamp: biometricData.timestamp,
         }),
       });
 
@@ -157,7 +201,7 @@ export const VotingModal: React.FC<VotingModalProps> = ({
       const result = await response.json();
       
       if (result.success) {
-        Alert.alert('Success', 'Your vote has been cast successfully!');
+        Alert.alert('Success', 'Your vote has been cast successfully with biometric verification!');
         onVoteSuccess?.();
         onClose();
       } else {

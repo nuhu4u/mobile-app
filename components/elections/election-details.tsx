@@ -317,20 +317,20 @@ interface ResultsTabProps {
 }
 
 function ResultsTab({ election, onResultsPress }: ResultsTabProps) {
-  const totalVotes = election.contestants.reduce((sum, candidate) => sum + candidate.votes, 0);
+  const totalVotes = election.contestants?.reduce((sum, candidate) => sum + (candidate.votes || 0), 0) || 0;
   
   return React.createElement(View, { style: styles.resultsContainer },
     React.createElement(View, { style: styles.resultsCard },
       React.createElement(Text, { style: styles.cardTitle }, 'Live Results'),
       
-      React.createElement(View, { style: styles.resultsList },
+      election.contestants && election.contestants.length > 0 ? React.createElement(View, { style: styles.resultsList },
         election.contestants
-          .sort((a, b) => b.votes - a.votes)
+          .sort((a, b) => (b.votes || 0) - (a.votes || 0))
           .map((candidate, index) => {
-            const percentage = totalVotes > 0 ? (candidate.votes / totalVotes) * 100 : 0;
+            const percentage = totalVotes > 0 ? ((candidate.votes || 0) / totalVotes) * 100 : 0;
             
             return React.createElement(View, { 
-              key: candidate.id, 
+              key: candidate.id || index, 
               style: styles.resultItem 
             },
               React.createElement(View, { style: styles.resultHeader },
@@ -340,13 +340,13 @@ function ResultsTab({ election, onResultsPress }: ResultsTabProps) {
                   ),
                   React.createElement(View, { style: styles.candidateDetails },
                     React.createElement(Text, { style: styles.candidateName }, candidate.name),
-                    React.createElement(Text, { style: styles.candidateParty }, candidate.party)
+                    React.createElement(Text, { style: styles.candidateParty }, candidate.party || 'Independent')
                   )
                 ),
                 
                 React.createElement(View, { style: styles.resultStats },
                   React.createElement(Text, { style: styles.voteCount },
-                    candidate.votes.toLocaleString()),
+                    (candidate.votes || 0).toLocaleString()),
                   React.createElement(Text, { style: styles.percentage },
                     `${percentage.toFixed(1)}%`)
                 )
@@ -359,6 +359,9 @@ function ResultsTab({ election, onResultsPress }: ResultsTabProps) {
               )
             );
           })
+      ) : React.createElement(View, { style: styles.noResultsContainer },
+        React.createElement(Ionicons, { name: 'bar-chart', size: 32, color: '#9ca3af' }),
+        React.createElement(Text, { style: styles.noResultsText }, 'No results available yet')
       ),
       
       React.createElement(View, { style: styles.separator }),
@@ -788,6 +791,15 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     fontWeight: '500',
     marginLeft: 8
+  },
+  noResultsContainer: {
+    alignItems: 'center',
+    padding: 24
+  },
+  noResultsText: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginTop: 8
   }
 });
 
