@@ -115,11 +115,21 @@ export const useElectionStore = create<ElectionStore>()(
         set({ isLoading: true, error: null });
         
         try {
+          // Import here to avoid circular dependency
+          const { useAuthStore } = await import('@/store/auth-store');
+          const { token } = useAuthStore.getState();
+          
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+          };
+          
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+          
           const response = await fetch(`${apiConfig.baseUrl}/elections/${id}`, {
             method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers,
           });
 
           const data = await response.json();
@@ -151,11 +161,21 @@ export const useElectionStore = create<ElectionStore>()(
         set({ isLoading: true, error: null });
         
         try {
+          // Import here to avoid circular dependency
+          const { useAuthStore } = await import('@/store/auth-store');
+          const { token } = useAuthStore.getState();
+          
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+          };
+          
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+          
           const response = await fetch(`${apiConfig.baseUrl}/elections/${electionId}/results`, {
             method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers,
           });
 
           const data = await response.json();

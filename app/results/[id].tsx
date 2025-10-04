@@ -6,12 +6,14 @@ import {
   TouchableOpacity, 
   ActivityIndicator, 
   StyleSheet,
-  RefreshControl 
+  RefreshControl,
+  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useElectionStore } from '@/store/election-store';
 import { useAuthStore } from '@/store/auth-store';
+import { getPartyPictureWithFallback } from '@/lib/utils/party-utils';
 
 export default function ResultsScreen() {
   const { id } = useLocalSearchParams();
@@ -24,6 +26,23 @@ export default function ResultsScreen() {
       fetchElectionById(id as string);
     }
   }, [id, fetchElectionById]);
+
+  // Debug election data when it changes
+  useEffect(() => {
+    if (currentElection) {
+      console.log('📊 Results Page: Election data received:', currentElection);
+      console.log('📊 Results Page: Contestants:', currentElection.contestants);
+      if (currentElection.contestants) {
+        currentElection.contestants.forEach((candidate: any, index: number) => {
+          console.log(`📊 Results Page: Candidate ${index + 1} - ${candidate.name}:`, {
+            votes: candidate.votes,
+            votesType: typeof candidate.votes,
+            candidateData: candidate
+          });
+        });
+      }
+    }
+  }, [currentElection]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -167,7 +186,9 @@ export default function ResultsScreen() {
           
           {sortedCandidates.length > 0 ? (
             sortedCandidates.map((candidate, index) => {
+              console.log(`📊 Results Page - Candidate: ${candidate.name}, votes: ${candidate.votes}, totalVotes: ${totalVotes}`);
               const percentage = totalVotes > 0 ? Math.round(((candidate.votes || 0) / totalVotes) * 100) : 0;
+              console.log(`📊 Results Page - Calculated percentage: ${percentage}%`);
               const isLeading = index === 0 && (candidate.votes || 0) > 0;
               
               return (
@@ -188,7 +209,25 @@ export default function ResultsScreen() {
                     
                     <View style={styles.candidateDetails}>
                       <Text style={styles.candidateName}>{candidate.name}</Text>
-                      <Text style={styles.candidateParty}>{candidate.party || 'Independent'}</Text>
+                      <View style={styles.partyInfo}>
+                        {(() => {
+                          const partyPicture = getPartyPictureWithFallback(candidate.name, candidate.party);
+                          return partyPicture ? (
+                            <Image 
+                              source={partyPicture} 
+                              style={styles.partyLogo}
+                              onError={() => {
+                                console.log('❌ Party logo failed to load for:', candidate.name);
+                              }}
+                            />
+                          ) : (
+                            <View style={[styles.partyLogo, { backgroundColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center' }]}>
+                              <Text style={{ fontSize: 8, color: '#64748b' }}>Party</Text>
+                            </View>
+                          );
+                        })()}
+                        <Text style={styles.candidateParty}>{candidate.party || 'Independent'}</Text>
+                      </View>
                     </View>
                   </View>
                   
@@ -421,6 +460,17 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginBottom: 2,
   },
+  partyInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  partyLogo: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 6,
+  },
   candidateParty: {
     fontSize: 14,
     color: '#64748b',
@@ -441,16 +491,16 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   progressBar: {
-    width: 60,
-    height: 4,
+    width: 80,
+    height: 6,
     backgroundColor: '#e2e8f0',
-    borderRadius: 2,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#3b82f6',
-    borderRadius: 2,
+    borderRadius: 3,
   },
   noResultsContainer: {
     alignItems: 'center',

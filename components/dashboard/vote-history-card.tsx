@@ -56,6 +56,13 @@ export const VoteHistoryCard: React.FC<VoteHistoryCardProps> = ({
 
   const partyPicture = getPartyPictureWithFallback(finalCandidate.name, finalCandidate.party);
   const partyName = getPartyNameWithFallback(finalCandidate.name, finalCandidate.party);
+  
+  // Calculate candidate's vote percentage
+  const totalElectionVotes = election.contestants?.reduce((sum: number, candidate: any) => sum + (candidate.votes || 0), 0) || 0;
+  const candidateVotes = votedCandidate?.votes || 0;
+  const votePercentage = totalElectionVotes > 0 ? ((candidateVotes / totalElectionVotes) * 100).toFixed(1) : '0.0';
+  
+  console.log(`📊 Vote History - Candidate: ${finalCandidate.name}, votes: ${candidateVotes}, totalElectionVotes: ${totalElectionVotes}, percentage: ${votePercentage}%`);
 
   return (
     <View style={styles.card}>
@@ -78,13 +85,19 @@ export const VoteHistoryCard: React.FC<VoteHistoryCardProps> = ({
         <View style={styles.partyRow}>
           <Text style={styles.detailLabel}>Party:</Text>
           <View style={styles.partyContainer}>
-            <Image 
-              source={{ uri: partyPicture }} 
-              style={styles.partyLogo}
-              onError={() => {
-                // Fallback handled by getPartyPictureWithFallback
-              }}
-            />
+            {partyPicture ? (
+              <Image 
+                source={partyPicture} 
+                style={styles.partyLogo}
+                onError={() => {
+                  console.log('❌ Party logo failed to load for:', finalCandidate.name);
+                }}
+              />
+            ) : (
+              <View style={[styles.partyLogo, { backgroundColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ fontSize: 8, color: '#64748b' }}>Party</Text>
+              </View>
+            )}
             <Text style={styles.partyName}>{partyName}</Text>
           </View>
         </View>
@@ -100,6 +113,16 @@ export const VoteHistoryCard: React.FC<VoteHistoryCardProps> = ({
           <Text style={styles.detailLabel}>Voted on:</Text>
           <Text style={styles.detailValue}>{formattedVoteTimestamp}</Text>
         </View>
+        
+        {votedCandidate && (
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Candidate Performance:</Text>
+            <View style={styles.performanceContainer}>
+              <Text style={styles.performanceVotes}>{candidateVotes.toLocaleString()} votes</Text>
+              <Text style={styles.performancePercentage}>({votePercentage}%)</Text>
+            </View>
+          </View>
+        )}
         
         {(() => {
           // Try multiple possible position fields
@@ -330,6 +353,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#374151',
     marginLeft: 6,
+    fontWeight: '500',
+  },
+  performanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  performanceVotes: {
+    fontSize: 14,
+    color: '#1E293B',
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  performancePercentage: {
+    fontSize: 14,
+    color: '#2563EB',
     fontWeight: '500',
   },
 });

@@ -8,6 +8,7 @@ import {
   Alert,
   RefreshControl,
   StyleSheet,
+  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -18,6 +19,7 @@ import { VoteHistoryList } from '@/components/dashboard/vote-history-list';
 // import { useVoteHistory } from '@/hooks/use-vote-history';
 import { VotingModal } from '@/components/voting/voting-modal';
 import EnhancedBiometricStatus from '@/components/biometric/EnhancedBiometricStatus';
+import { getPartyPictureWithFallback } from '@/lib/utils/party-utils';
 
 interface VoterInfo {
   name: string;
@@ -31,23 +33,6 @@ interface VoterInfo {
   state: string;
 }
 
-interface Election {
-  id: string;
-  title: string;
-  type: string;
-  status: string;
-  endTime: string;
-  hasVoted: boolean;
-  votePosition: number;
-  voteTimestamp: string | null;
-  contestants: any[];
-  leadingCandidate: {
-    name: string;
-    party: string;
-    runningMate: string;
-  };
-  total_votes: number;
-}
 
 interface Stats {
   totalRegisteredVoters: number;
@@ -68,7 +53,7 @@ export default function DashboardScreen() {
   
   // Voting modal state
   const [showVotingModal, setShowVotingModal] = useState(false);
-  const [selectedElection, setSelectedElection] = useState<APIElection | null>(null);
+  const [selectedElection, setSelectedElection] = useState<any | null>(null);
   
   // Data states
   const [loading, setLoading] = useState(true);
@@ -78,8 +63,8 @@ export default function DashboardScreen() {
   
   // Dashboard data
   const [voterInfo, setVoterInfo] = useState<VoterInfo | null>(null);
-  const [elections, setElections] = useState<Election[]>([]);
-  const [votedElections, setVotedElections] = useState<Election[]>([]);
+  const [elections, setElections] = useState<any[]>([]);
+  const [votedElections, setVotedElections] = useState<any[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [myVotes, setMyVotes] = useState<Vote[]>([]);
   
@@ -147,9 +132,9 @@ export default function DashboardScreen() {
         console.log('📊 Dashboard: Full data object:', JSON.stringify(data, null, 2));
         
         // Debug elections data
-        if (data.elections) {
-          console.log('📊 Dashboard: Elections count:', data.elections.length);
-          data.elections.forEach((election: any, index: number) => {
+        if (data.activeElections) {
+          console.log('📊 Dashboard: Elections count:', data.activeElections.length);
+          data.activeElections.forEach((election: any, index: number) => {
             console.log(`📊 Dashboard: Election ${index}:`, election.title);
             console.log(`📊 Dashboard: Election ${index} contestants:`, election.contestants);
             console.log(`📊 Dashboard: Election ${index} contestants length:`, election.contestants?.length || 0);
@@ -233,6 +218,24 @@ export default function DashboardScreen() {
         } else {
           setMyVotes([]);
           console.log('⚠️ Dashboard: No vote history data received');
+        }
+        
+        // Debug candidate vote data
+        if (data.activeElections) {
+          console.log('📊 Dashboard: Active elections count:', data.activeElections.length);
+          data.activeElections.forEach((election: any, electionIndex: number) => {
+            console.log(`📊 Dashboard: Election ${electionIndex + 1} - ${election.title}`);
+            console.log(`📊 Dashboard: Election ${electionIndex + 1} contestants:`, election.contestants);
+            if (election.contestants) {
+              election.contestants.forEach((candidate: any, candidateIndex: number) => {
+                console.log(`📊 Dashboard: Candidate ${candidateIndex + 1} - ${candidate.name}:`, {
+                  votes: candidate.votes,
+                  votesType: typeof candidate.votes,
+                  candidateData: candidate
+                });
+              });
+            }
+          });
         }
         
         setSuccess('Dashboard data loaded successfully');
@@ -723,53 +726,90 @@ export default function DashboardScreen() {
         {activeTab === 'results' && (
           <View style={styles.tabContent}>
             <Text style={styles.sectionTitle}>Live Election Results</Text>
-            {[...elections, ...votedElections].map((election) => (
-              <View key={election.id} style={styles.electionCard}>
-                <View style={styles.electionHeader}>
-                  <Text style={styles.electionTitle}>{election.title}</Text>
-                  <View style={[styles.badge, styles.liveBadge]}>
-                    <Text style={[styles.badgeText, styles.liveText]}>Live</Text>
+            {[...elections, ...votedElections].map((election) => {
+              // Calculate leading candidate from contestants
+              const sortedCandidates = [...(election.contestants || [])].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+              const leadingCandidate = sortedCandidates.length > 0 ? sortedCandidates[0] : null;
+              const totalVotes = election.contestants?.reduce((sum: number, candidate: any) => sum + (candidate.votes || 0), 0) || 0;
+              
+              return (
+                <View key={election.id} style={styles.electionCard}>
+                  <View style={styles.electionHeader}>
+                    <Text style={styles.electionTitle}>{election.title}</Text>
+                    <View style={[styles.badge, styles.liveBadge]}>
+                      <Text style={[styles.badgeText, styles.liveText]}>Live</Text>
+                    </View>
                   </View>
-                </View>
-                
-                <Text style={styles.leadingText}>
-                  Leading: {election.leadingCandidate.name}
-                  {election.leadingCandidate.runningMate && ` / ${election.leadingCandidate.runningMate}`}
-                </Text>
-                
-                <View style={styles.candidatesContainer}>
-                  {election.contestants.map((candidate, index) => {
-                    const percentage = election.total_votes > 0 ? 
-                      Math.round((candidate.votes / election.total_votes) * 100) : 0;
-                    
-                    return (
-                      <View key={index} style={styles.candidateRow}>
+                  
+                  {leadingCandidate && (
+                    <Text style={styles.leadingText}>
+                      Leading: {leadingCandidate.name}
+                      {leadingCandidate.running_mate && ` / ${leadingCandidate.running_mate}`}
+                    </Text>
+                  )}
+                  
+                  <View style={styles.candidatesContainer}>
+                    {election.contestants?.map((candidate: any, index: number) => {
+                      console.log(`📊 Dashboard Results - Candidate: ${candidate.name}, votes: ${candidate.votes}, totalVotes: ${totalVotes}`);
+                      const percentage = totalVotes > 0 ? 
+                        Math.round(((candidate.votes || 0) / totalVotes) * 100) : 0;
+                      console.log(`📊 Dashboard Results - Calculated percentage: ${percentage}%`);
+                      
+                      return (
+                        <View key={candidate.id || index} style={styles.candidateRow}>
                         <View style={styles.candidateInfo}>
                           <Text style={styles.candidateName}>{candidate.name}</Text>
-                          <Text style={styles.candidateParty}>{candidate.party}</Text>
+                          <View style={styles.partyInfo}>
+                            {(() => {
+                              const partyPicture = getPartyPictureWithFallback(candidate.name, candidate.party);
+                              return partyPicture ? (
+                                <Image 
+                                  source={partyPicture} 
+                                  style={styles.partyLogo}
+                                  onError={() => {
+                                    console.log('❌ Party logo failed to load for:', candidate.name);
+                                  }}
+                                />
+                              ) : (
+                                <View style={[styles.partyLogo, { backgroundColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center' }]}>
+                                  <Text style={{ fontSize: 8, color: '#64748b' }}>Party</Text>
+                                </View>
+                              );
+                            })()}
+                            <Text style={styles.candidateParty}>{candidate.party}</Text>
+                          </View>
                         </View>
-                        <View style={styles.candidateStats}>
-                          <Text style={styles.candidatePercentage}>{percentage}%</Text>
-                          <Text style={styles.candidateVotes}>{candidate.votes?.toLocaleString()} votes</Text>
+                          <View style={styles.candidateStats}>
+                            <Text style={styles.candidatePercentage}>{percentage}%</Text>
+                            <Text style={styles.candidateVotes}>{(candidate.votes || 0).toLocaleString()} votes</Text>
+                            <View style={styles.candidateProgressBar}>
+                              <View style={[styles.candidateProgressFill, { width: `${percentage}%` }]} />
+                            </View>
+                          </View>
                         </View>
+                      );
+                    }) || (
+                      <View style={styles.noResultsContainer}>
+                        <Text style={styles.noResultsText}>No candidates available</Text>
                       </View>
-                    );
-                  })}
+                    )}
+                  </View>
+                  
+                  <View style={styles.electionStats}>
+                    <Text style={styles.statLabel}>Total Votes Cast: {totalVotes.toLocaleString()}</Text>
+                    <Text style={styles.statLabel}>Status: {election.status}</Text>
+                  </View>
                 </View>
-                
-                <View style={styles.electionStats}>
-                  <Text style={styles.statLabel}>Total Votes Cast: {election.total_votes?.toLocaleString()}</Text>
-                  <Text style={styles.statLabel}>Status: {election.status}</Text>
-                </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
+
 
         {activeTab === 'history' && (
           <VoteHistoryList
             voteHistory={myVotes} // Use myVotes from dashboard data
-            elections={[...elections, ...votedElections]} // Pass all elections for context
+            elections={[...elections, ...votedElections] as any[]} // Pass all elections for context
             onViewPosition={(electionId) => {
               console.log('View Position for election:', electionId);
               // Navigate to vote position page
@@ -1366,6 +1406,17 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginBottom: 2,
   },
+  partyInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  partyLogo: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 6,
+  },
   candidateParty: {
     fontSize: 12,
     color: '#64748b',
@@ -1381,6 +1432,19 @@ const styles = StyleSheet.create({
   candidateVotes: {
     fontSize: 12,
     color: '#64748b',
+  },
+  candidateProgressBar: {
+    width: 60,
+    height: 4,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginTop: 4,
+  },
+  candidateProgressFill: {
+    height: '100%',
+    backgroundColor: '#3b82f6',
+    borderRadius: 2,
   },
   electionStats: {
     borderTopWidth: 1,
@@ -1414,21 +1478,6 @@ const styles = StyleSheet.create({
   voteDetail: {
     fontSize: 14,
     color: '#374151',
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    marginTop: 16,
-  },
-  emptyText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#9ca3af',
-    textAlign: 'center',
-    lineHeight: 24,
   },
   debugText: {
     marginTop: 8,
@@ -1482,5 +1531,18 @@ const styles = StyleSheet.create({
     padding: 12,
     margin: 16,
     borderRadius: 8,
+  },
+  noResultsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    marginVertical: 8,
+  },
+  noResultsText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontStyle: 'italic',
   },
 });

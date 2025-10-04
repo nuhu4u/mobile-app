@@ -98,13 +98,13 @@ export const getAllCandidates = (): CandidateDetails[] => {
   return STATIC_CANDIDATES
 }
 
-// Helper function to get party picture by party name or party ID
-export const getPartyPicture = (partyInfo: string | { name?: string; id?: string; acronym?: string }): string => {
+// Helper function to get party picture by party name or party ID - returns local asset
+export const getPartyPicture = (partyInfo: string | { name?: string; id?: string; acronym?: string }): any => {
   console.log('🎨 getPartyPicture called with party info:', partyInfo);
   
   if (!partyInfo) {
-    console.log('🎨 No party info provided, using placeholder');
-    return 'https://via.placeholder.com/100x100/cccccc/666666?text=Party';
+    console.log('🎨 No party info provided, returning null');
+    return null;
   }
   
   // Handle both string and object inputs
@@ -117,88 +117,98 @@ export const getPartyPicture = (partyInfo: string | { name?: string; id?: string
   
   console.log('🎨 Normalized party name:', partyName);
   
-  const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.137.1:3001';
-  
-  // Match by party name/acronym to get the correct party picture
+  // Match by party name/acronym to get the correct local party picture
   if (partyName.includes('apc') || partyName.includes('all progressives congress')) {
-    const url = `${baseUrl}/party-logos/apc.webp`;
-    console.log('🎨 Matched APC, returning:', url);
-    return url;
+    console.log('🎨 Matched APC, returning local asset');
+    const asset = require('../../assets/images/apc.jpg');
+    console.log('🎨 APC asset loaded:', asset);
+    return asset;
   } else if (partyName.includes('pdp') || partyName.includes('peoples democratic party')) {
-    const url = `${baseUrl}/party-logos/pdp.webp`;
-    console.log('🎨 Matched PDP, returning:', url);
-    return url;
+    console.log('🎨 Matched PDP, returning local asset');
+    const asset = require('../../assets/images/pdp.jpg');
+    console.log('🎨 PDP asset loaded:', asset);
+    return asset;
   } else if (partyName.includes('lp') || partyName.includes('labour party')) {
-    const url = `${baseUrl}/party-logos/labour-party.jpg`;
-    console.log('🎨 Matched LP, returning:', url);
-    return url;
+    console.log('🎨 Matched LP, returning local asset');
+    const asset = require('../../assets/images/labour-party.jpg');
+    console.log('🎨 LP asset loaded:', asset);
+    return asset;
   } else if (partyName.includes('nnpp') || partyName.includes('new nigeria peoples party')) {
-    const url = `${baseUrl}/party-logos/nnpp.jpg`;
-    console.log('🎨 Matched NNPP, returning:', url);
-    return url;
+    console.log('🎨 Matched NNPP, returning local asset');
+    const asset = require('../../assets/images/nnpp.jpg');
+    console.log('🎨 NNPP asset loaded:', asset);
+    return asset;
   }
   
-  console.log('🎨 No party match found, using placeholder');
-  return 'https://via.placeholder.com/100x100/cccccc/666666?text=Party';
+  console.log('🎨 No party match found, returning null');
+  return null;
 }
 
-// Helper function to get party picture with candidate name fallback
-export const getPartyPictureWithFallback = (candidateName: string, partyName: string): string => {
+// Helper function to get party picture with candidate name fallback - returns local asset
+export const getPartyPictureWithFallback = (candidateName: string, partyName: string): any => {
   console.log('🎨 getPartyPictureWithFallback called with:', { candidateName, partyName });
   
-  // Handle "Independent" party by using candidate name fallback immediately
-  if (partyName && partyName.toLowerCase().includes('independent')) {
-    console.log('🎨 Detected Independent party, using candidate name fallback...');
+  try {
+    // Handle "Independent" party by using candidate name fallback immediately
+    if (partyName && partyName.toLowerCase().includes('independent')) {
+      console.log('🎨 Detected Independent party, using candidate name fallback...');
+      return getPartyPictureByCandidateName(candidateName);
+    }
+    
+    // First try to match by party name
+    const partyPicture = getPartyPicture(partyName);
+    console.log('🎨 getPartyPicture returned:', partyPicture, 'type:', typeof partyPicture);
+    
+    // If party matched, return it
+    if (partyPicture) {
+      console.log('🎨 Party matched successfully');
+      return partyPicture;
+    }
+    
+    // If party didn't match, try to match by candidate name
+    console.log('🎨 Party did not match, trying candidate name fallback...');
     return getPartyPictureByCandidateName(candidateName);
+  } catch (error) {
+    console.error('🎨 Error in getPartyPictureWithFallback:', error);
+    return null;
   }
-  
-  // First try to match by party name
-  const partyPicture = getPartyPicture(partyName);
-  
-  // If party matched and it's not a placeholder, return it
-  if (!partyPicture.includes('placeholder')) {
-    console.log('🎨 Party matched successfully:', partyPicture);
-    return partyPicture;
-  }
-  
-  // If party didn't match, try to match by candidate name
-  console.log('🎨 Party did not match, trying candidate name fallback...');
-  return getPartyPictureByCandidateName(candidateName);
 }
 
-// Helper function to get party picture by candidate name
-const getPartyPictureByCandidateName = (candidateName: string): string => {
+// Helper function to get party picture by candidate name - returns local asset
+const getPartyPictureByCandidateName = (candidateName: string): any => {
   if (!candidateName) {
     console.log('🎨 No candidate name provided for fallback');
-    return 'https://via.placeholder.com/100x100/cccccc/666666?text=Party';
+    return null;
   }
   
   const name = candidateName.toLowerCase();
   console.log('🎨 Normalized candidate name for fallback:', name);
   
-  const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.137.1:3001';
-  
-  // Match by candidate name to get their specific party picture
+  // Match by candidate name to get their specific local party picture
   if (name.includes('adebayo') || name.includes('ogundimu')) {
-    const url = `${baseUrl}/party-logos/apc.webp`;
-    console.log('🎨 Fallback matched Adebayo Ogundimu (APC), returning:', url);
-    return url;
+    console.log('🎨 Fallback matched Adebayo Ogundimu (APC), returning local asset');
+    const asset = require('../../assets/images/apc.jpg');
+    console.log('🎨 Fallback APC asset loaded:', asset);
+    return asset;
   } else if (name.includes('chinedu') || name.includes('okwu')) {
-    const url = `${baseUrl}/party-logos/pdp.webp`;
-    console.log('🎨 Fallback matched Chinedu Okwu (PDP), returning:', url);
-    return url;
+    console.log('🎨 Fallback matched Chinedu Okwu (PDP), returning local asset');
+    const asset = require('../../assets/images/pdp.jpg');
+    console.log('🎨 Fallback PDP asset loaded:', asset);
+    return asset;
   } else if (name.includes('ibrahim') || name.includes('musa')) {
-    const url = `${baseUrl}/party-logos/labour-party.jpg`;
-    console.log('🎨 Fallback matched Ibrahim Musa (LP), returning:', url);
-    return url;
+    console.log('🎨 Fallback matched Ibrahim Musa (LP), returning local asset');
+    const asset = require('../../assets/images/labour-party.jpg');
+    console.log('🎨 Fallback LP asset loaded:', asset);
+    return asset;
   } else if (name.includes('funmilayo') || name.includes('adeyemi')) {
-    const url = `${baseUrl}/party-logos/nnpp.jpg`;
-    console.log('🎨 Fallback matched Funmilayo Adeyemi (NNPP), returning:', url);
-    return url;
+    console.log('🎨 Fallback matched Funmilayo Adeyemi (NNPP), returning local asset');
+    const asset = require('../../assets/images/nnpp.jpg');
+    console.log('🎨 Fallback NNPP asset loaded:', asset);
+    return asset;
   }
   
-  console.log('🎨 No candidate fallback match found, using placeholder');
-  return 'https://via.placeholder.com/100x100/cccccc/666666?text=Party';
+  console.log('🎨 No candidate fallback match found, returning null');
+  return null;
 }
 
 // Helper function to get party name with candidate name fallback
