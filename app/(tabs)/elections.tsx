@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, RefreshControl, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useElectionStore } from '@/store/election-store';
+import { useAuthStore } from '@/store/auth-store';
+import { dashboardService } from '@/lib/api/dashboard-service';
 
 export default function ElectionsScreen() {
   const [elections, setElections] = useState<any[]>([]);
@@ -9,51 +12,44 @@ export default function ElectionsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [showElectionDetailsModal, setShowElectionDetailsModal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { isAuthenticated } = useAuthStore();
 
   console.log('ElectionsScreen: Component loaded');
 
-  // Mock data - will be replaced with API calls
   useEffect(() => {
-    fetchElections();
+    if (isAuthenticated) {
+      fetchElections();
+    }
     // Show modal when first accessing elections page
     setShowElectionDetailsModal(true);
-  }, []);
+  }, [isAuthenticated]);
 
   const fetchElections = async () => {
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setElections([
-        {
-          _id: '1',
-          title: 'Senatorial Election 2025',
-          election_type: 'SENATORIAL',
-          status: 'ONGOING',
-          total_votes: 1250,
-          contestants: [
-            { name: 'Adebayo Ogundimu', party: 'APC', votes: 450, partyPicture: null },
-            { name: 'Sarah Johnson', party: 'PDP', votes: 380, partyPicture: null },
-            { name: 'Michael Adebayo', party: 'LP', votes: 250, partyPicture: null },
-            { name: 'Fatima Ibrahim', party: 'NNPP', votes: 170, partyPicture: null }
-          ]
-        },
-        {
-          _id: '2',
-          title: 'Governorship Election 2025',
-          election_type: 'GUBERNATORIAL',
-          status: 'ONGOING',
-          total_votes: 3200,
-          contestants: [
-            { name: 'John Doe', party: 'APC', votes: 1200, partyPicture: null },
-            { name: 'Jane Smith', party: 'PDP', votes: 1100, partyPicture: null },
-            { name: 'Bob Wilson', party: 'LP', votes: 600, partyPicture: null },
-            { name: 'Alice Brown', party: 'NNPP', votes: 300, partyPicture: null }
-          ]
-        }
-      ]);
+    setError(null);
+    
+    try {
+      console.log('🗳️ ElectionsScreen: Fetching elections from API...');
+      const response = await dashboardService.getDashboardData();
+      
+      if (response.success && response.data?.activeElections) {
+        console.log('✅ ElectionsScreen: Elections fetched successfully:', response.data.activeElections.length);
+        setElections(response.data.activeElections);
+        setLastUpdated(new Date());
+      } else {
+        console.log('⚠️ ElectionsScreen: No elections data received');
+        setElections([]);
+        setError('No elections available');
+      }
+    } catch (err: any) {
+      console.error('❌ ElectionsScreen: Error fetching elections:', err);
+      setError(err.message || 'Failed to fetch elections');
+      setElections([]);
+    } finally {
       setLoading(false);
-      setLastUpdated(new Date());
-    }, 1000);
+    }
   };
 
   const onRefresh = async () => {
@@ -253,9 +249,17 @@ export default function ElectionsScreen() {
             <Ionicons name="refresh" size={32} color="#64748b" style={styles.spinningIcon} />
             <Text style={styles.loadingText}>Loading elections...</Text>
           </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle" size={48} color="#ef4444" />
+            <Text style={styles.errorText}>Error: {error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={fetchElections}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
         ) : filteredElections.length > 0 ? (
           filteredElections.map((election) => (
-            <View key={election._id} style={styles.electionCard}>
+            <View key={election.id || election._id} style={styles.electionCard}>
               <View style={styles.electionHeader}>
                 <View style={styles.electionInfo}>
                   <Text style={styles.electionTitle}>{election.title}</Text>
@@ -349,14 +353,14 @@ export default function ElectionsScreen() {
               <View style={styles.actionButtons}>
                 <TouchableOpacity 
                   style={styles.actionButton}
-                  onPress={() => router.push(`/elections/${election._id}`)}
+                  onPress={() => router.push(`/elections/${election.id || election._id}`)}
                 >
                   <Ionicons name="eye" size={16} color="white" />
                   <Text style={styles.actionButtonText}>View Details</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={[styles.actionButton, styles.resultsButton]}
-                  onPress={() => router.push(`/results/${election._id}`)}
+                  onPress={() => router.push(`/results/${election.id || election._id}`)}
                 >
                   <Ionicons name="bar-chart" size={16} color="white" />
                   <Text style={styles.actionButtonText}>View Results</Text>
@@ -364,7 +368,7 @@ export default function ElectionsScreen() {
                 {election.status === 'ONGOING' && (
                   <TouchableOpacity 
                     style={[styles.actionButton, styles.voteButton]}
-                    onPress={() => router.push(`/vote/${election._id}`)}
+                    onPress={() => router.push(`/vote/${election.id || election._id}`)}
                   >
                     <Ionicons name="document-text" size={16} color="white" />
                     <Text style={styles.actionButtonText}>Vote Now</Text>
@@ -897,5 +901,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    backgroundColor: '#fef2f2',
+    borderRadius: 12,
+    margin: 16,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#dc2626',
+    textAlign: 'center',
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#dc2626',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

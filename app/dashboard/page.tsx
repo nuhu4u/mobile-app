@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,10 +16,10 @@ import { useAuthStore } from '@/store/auth-store';
 import { dashboardService, Election as APIElection, Vote } from '@/lib/api/dashboard-service';
 import { ApiConfigModal } from '@/components/common/ApiConfigModal';
 import { VoteHistoryList } from '@/components/dashboard/vote-history-list';
-// import { useVoteHistory } from '@/hooks/use-vote-history';
 import { VotingModal } from '@/components/voting/voting-modal';
 import EnhancedBiometricStatus from '@/components/biometric/EnhancedBiometricStatus';
 import { getPartyPictureWithFallback } from '@/lib/utils/party-utils';
+// Auto network detection removed - using stable hotspot connection
 
 interface VoterInfo {
   name: string;
@@ -96,21 +96,14 @@ export default function DashboardScreen() {
     }
     
     console.log('✅ Dashboard - User authenticated, loading data');
-    loadDashboardData();
-  }, [isAuthenticated, user, authLoading]);
+    if (!refreshing) {
+      loadDashboardData();
+    }
 
-  // Auto-refresh data every 30 seconds
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    
-    const interval = setInterval(() => {
-      console.log('⏰ Dashboard: Auto-refreshing data...');
-      refreshElections();
-      refreshStats();
-    }, 30000); // 30 seconds
-    
-    return () => clearInterval(interval);
-  }, [isAuthenticated]);
+    // Auto network detection removed - using stable hotspot connection
+  }, [isAuthenticated, user, authLoading, refreshing]);
+
+  // Auto refresh removed - manual refresh only to prevent loops
 
   // Removed health check - using proper authentication instead
 
@@ -163,14 +156,35 @@ export default function DashboardScreen() {
         if (data.activeElections) {
           console.log('🗳️ Dashboard: Processing elections data...');
           
-          const processedElections = data.activeElections.map((election: APIElection) => {
+          const processedElections = await Promise.all(data.activeElections.map(async (election: APIElection) => {
             // Check if user has voted in this election
             const userVote = data.myVotes?.find((vote: Vote) => 
               vote.election_id === election.id
             );
             
-            // Find leading candidate
-            const sortedContestants = [...election.contestants].sort((a, b) => b.votes - a.votes);
+            // Use existing data from dashboard response (already includes latest results)
+            let contestantsWithVotes = election.contestants;
+            let totalVotes = election.total_votes || 0;
+            
+            // Only fetch fresh results if data is missing or stale
+            if (!contestantsWithVotes || contestantsWithVotes.length === 0) {
+              try {
+                console.log(`📊 Dashboard: Fetching results for election ${election.id} (missing data)...`);
+                const resultsResponse = await dashboardService.fetchElectionResults(election.id);
+                if (resultsResponse.success && resultsResponse.data) {
+                  contestantsWithVotes = resultsResponse.data.contestants || election.contestants;
+                  totalVotes = resultsResponse.data.total_votes || election.total_votes || 0;
+                  console.log(`✅ Dashboard: Updated results for ${election.title} - Total votes: ${totalVotes}`);
+                }
+              } catch (error) {
+                console.warn(`⚠️ Dashboard: Could not fetch results for ${election.title}:`, error);
+              }
+            } else {
+              console.log(`📊 Dashboard: Using existing results for ${election.title} - Total votes: ${totalVotes}`);
+            }
+            
+            // Find leading candidate from updated results
+            const sortedContestants = [...contestantsWithVotes].sort((a, b) => (b.votes || 0) - (a.votes || 0));
             const leadingCandidate = sortedContestants[0];
             
             return {
@@ -183,16 +197,16 @@ export default function DashboardScreen() {
               hasVoted: !!userVote,
               votePosition: userVote?.vote_position || 0,
               voteTimestamp: userVote?.vote_timestamp || null,
-              contestants: election.contestants,
+              contestants: contestantsWithVotes,
               leadingCandidate: leadingCandidate ? {
                 name: leadingCandidate.name,
                 party: leadingCandidate.party || 'Independent',
                 runningMate: leadingCandidate.running_mate || ''
               } : { name: 'No candidates', party: 'N/A', runningMate: '' },
-              total_votes: election.total_votes || 0,
+              total_votes: totalVotes,
               contract_address: election.contract_address,
             };
-          });
+          }));
           
           // Separate voted and non-voted elections
           const nonVoted = processedElections.filter((e: any) => !e.hasVoted);
@@ -262,46 +276,24 @@ export default function DashboardScreen() {
       return;
     }
 
-    console.log('🔄 Dashboard: Refreshing data');
+    console.log('🔄 Dashboard: Manual refresh requested');
     setRefreshing(true);
     
     try {
-      // Refresh all dashboard data (this includes stats)
+      // Direct refresh - simple and reliable
       await loadDashboardData();
-      
-      // Only refresh elections separately (stats are included in loadDashboardData)
-      await refreshElections();
       
     } catch (error) {
       console.error('🔄 Dashboard: Refresh failed:', error);
     } finally {
+      // Add a small delay to prevent rapid successive calls
+      setTimeout(() => {
       setRefreshing(false);
+      }, 1000);
     }
   };
 
-  const refreshElections = async () => {
-    try {
-      const response = await dashboardService.refreshElectionData();
-      if (response.success && response.data) {
-        // Process and update elections
-        console.log('🗳️ Dashboard: Elections refreshed');
-      }
-    } catch (error) {
-      console.error('❌ Dashboard: Election refresh failed:', error);
-    }
-  };
-
-  const refreshStats = async () => {
-    try {
-      const response = await dashboardService.getElectionStats();
-      if (response.success && response.data) {
-        setStats(response.data);
-        console.log('📈 Dashboard: Stats refreshed');
-      }
-    } catch (error) {
-      console.error('❌ Dashboard: Stats refresh failed:', error);
-    }
-  };
+  // Navigation handlers removed - using manual refresh only
 
   const handleLogout = () => {
     Alert.alert(
@@ -574,17 +566,6 @@ export default function DashboardScreen() {
         <EnhancedBiometricStatus 
           compact={true}
           showMobileCTA={false}
-          onStatusChange={(status) => {
-            console.log('🔐 Dashboard: Enhanced biometric status changed:', status);
-            console.log('🔐 Dashboard: Status enrolled:', status?.enrolled);
-            console.log('🔐 Dashboard: Status device ID:', status?.device_id);
-            
-            // Only refresh dashboard data when biometric status changes to enrolled
-            if (status?.enrolled) {
-              console.log('🔄 Dashboard: Biometric enrolled, refreshing dashboard...');
-              handleRefresh();
-            }
-          }}
         />
 
         {/* Vote Position Card */}
@@ -725,83 +706,121 @@ export default function DashboardScreen() {
 
         {activeTab === 'results' && (
           <View style={styles.tabContent}>
+            <View style={styles.resultsHeader}>
             <Text style={styles.sectionTitle}>Live Election Results</Text>
-            {[...elections, ...votedElections].map((election) => {
+              <TouchableOpacity 
+                style={styles.refreshResultsButton}
+                onPress={handleRefresh}
+                disabled={refreshing}
+              >
+                <Ionicons 
+                  name="refresh" 
+                  size={16} 
+                  color="#3b82f6"
+                  style={refreshing ? styles.spinningIcon : {}}
+                />
+                <Text style={styles.refreshResultsText}>
+                  {refreshing ? 'Refreshing...' : 'Refresh'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {(() => {
+              const allElections = [...elections, ...votedElections];
+              console.log('📊 Dashboard Results Tab - Total elections:', allElections.length);
+              console.log('📊 Dashboard Results Tab - Elections array:', elections.length);
+              console.log('📊 Dashboard Results Tab - VotedElections array:', votedElections.length);
+              console.log('📊 Dashboard Results Tab - All elections:', allElections);
+              
+              if (allElections.length === 0) {
+                return (
+                  <View style={styles.noResultsContainer}>
+                    <Ionicons name="bar-chart" size={48} color="#9ca3af" />
+                    <Text style={styles.noResultsText}>No elections available</Text>
+                    <Text style={styles.noResultsSubtext}>Check back later for results</Text>
+                  </View>
+                );
+              }
+              
+              return allElections.map((election) => {
               // Calculate leading candidate from contestants
-              const sortedCandidates = [...(election.contestants || [])].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+              const sortedCandidates = [...(election.contestants || [])].sort((a, b) => (b.votes || b.vote_count || 0) - (a.votes || a.vote_count || 0));
               const leadingCandidate = sortedCandidates.length > 0 ? sortedCandidates[0] : null;
-              const totalVotes = election.contestants?.reduce((sum: number, candidate: any) => sum + (candidate.votes || 0), 0) || 0;
+              const totalVotes = election.contestants?.reduce((sum: number, candidate: any) => sum + (candidate.votes || candidate.vote_count || 0), 0) || 0;
               
               return (
-                <View key={election.id} style={styles.electionCard}>
-                  <View style={styles.electionHeader}>
-                    <Text style={styles.electionTitle}>{election.title}</Text>
-                    <View style={[styles.badge, styles.liveBadge]}>
-                      <Text style={[styles.badgeText, styles.liveText]}>Live</Text>
-                    </View>
+              <View key={election.id} style={styles.electionCard}>
+                <View style={styles.electionHeader}>
+                  <Text style={styles.electionTitle}>{election.title}</Text>
+                  <View style={[styles.badge, styles.liveBadge]}>
+                    <Text style={[styles.badgeText, styles.liveText]}>Live</Text>
                   </View>
-                  
+                </View>
+                
                   {leadingCandidate && (
-                    <Text style={styles.leadingText}>
+                <Text style={styles.leadingText}>
                       Leading: {leadingCandidate.name}
                       {leadingCandidate.running_mate && ` / ${leadingCandidate.running_mate}`}
-                    </Text>
+                </Text>
                   )}
-                  
-                  <View style={styles.candidatesContainer}>
-                    {election.contestants?.map((candidate: any, index: number) => {
-                      console.log(`📊 Dashboard Results - Candidate: ${candidate.name}, votes: ${candidate.votes}, totalVotes: ${totalVotes}`);
-                      const percentage = totalVotes > 0 ? 
-                        Math.round(((candidate.votes || 0) / totalVotes) * 100) : 0;
-                      console.log(`📊 Dashboard Results - Calculated percentage: ${percentage}%`);
-                      
-                      return (
-                        <View key={candidate.id || index} style={styles.candidateRow}>
+                
+                <View style={styles.candidatesContainer}>
+                    {election.contestants && election.contestants.length > 0 ? (
+                      election.contestants.map((candidate: any, index: number) => {
+                        const candidateVotes = candidate.votes || candidate.vote_count || 0;
+                        console.log(`📊 Dashboard Results - Candidate: ${candidate.name}, votes: ${candidateVotes}, totalVotes: ${totalVotes}`);
+                        const percentage = totalVotes > 0 ? 
+                          Math.round((candidateVotes / totalVotes) * 100) : 0;
+                        console.log(`📊 Dashboard Results - Calculated percentage: ${percentage}%`);
+                    
+                    return (
+                          <View key={candidate.id || index} style={styles.candidateRow}>
                         <View style={styles.candidateInfo}>
                           <Text style={styles.candidateName}>{candidate.name}</Text>
-                          <View style={styles.partyInfo}>
-                            {(() => {
-                              const partyPicture = getPartyPictureWithFallback(candidate.name, candidate.party);
-                              return partyPicture ? (
-                                <Image 
-                                  source={partyPicture} 
-                                  style={styles.partyLogo}
-                                  onError={() => {
-                                    console.log('❌ Party logo failed to load for:', candidate.name);
-                                  }}
-                                />
-                              ) : (
-                                <View style={[styles.partyLogo, { backgroundColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center' }]}>
-                                  <Text style={{ fontSize: 8, color: '#64748b' }}>Party</Text>
-                                </View>
-                              );
-                            })()}
-                            <Text style={styles.candidateParty}>{candidate.party}</Text>
-                          </View>
-                        </View>
-                          <View style={styles.candidateStats}>
-                            <Text style={styles.candidatePercentage}>{percentage}%</Text>
-                            <Text style={styles.candidateVotes}>{(candidate.votes || 0).toLocaleString()} votes</Text>
-                            <View style={styles.candidateProgressBar}>
-                              <View style={[styles.candidateProgressFill, { width: `${percentage}%` }]} />
+                            <View style={styles.partyInfo}>
+                              {(() => {
+                                const partyPicture = getPartyPictureWithFallback(candidate.name, candidate.party);
+                                return partyPicture ? (
+                                  <Image 
+                                    source={partyPicture} 
+                                    style={styles.partyLogo}
+                                    onError={() => {
+                                      console.log('❌ Party logo failed to load for:', candidate.name);
+                                    }}
+                                  />
+                                ) : (
+                                  <View style={[styles.partyLogo, { backgroundColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center' }]}>
+                                    <Text style={{ fontSize: 8, color: '#64748b' }}>Party</Text>
+                                  </View>
+                                );
+                              })()}
+                              <Text style={styles.candidateParty}>{candidate.party || 'Independent'}</Text>
                             </View>
-                          </View>
                         </View>
-                      );
-                    }) || (
+                        <View style={styles.candidateStats}>
+                          <Text style={styles.candidatePercentage}>{percentage}%</Text>
+                              <Text style={styles.candidateVotes}>{candidateVotes.toLocaleString()} votes</Text>
+                              <View style={styles.candidateProgressBar}>
+                                <View style={[styles.candidateProgressFill, { width: `${percentage}%` }]} />
+                              </View>
+                        </View>
+                      </View>
+                    );
+                      })
+                    ) : (
                       <View style={styles.noResultsContainer}>
                         <Text style={styles.noResultsText}>No candidates available</Text>
                       </View>
                     )}
-                  </View>
-                  
-                  <View style={styles.electionStats}>
-                    <Text style={styles.statLabel}>Total Votes Cast: {totalVotes.toLocaleString()}</Text>
-                    <Text style={styles.statLabel}>Status: {election.status}</Text>
-                  </View>
                 </View>
+                
+                <View style={styles.electionStats}>
+                    <Text style={styles.statLabel}>Total Votes Cast: {totalVotes.toLocaleString()}</Text>
+                  <Text style={styles.statLabel}>Status: {election.status}</Text>
+                </View>
+              </View>
               );
-            })}
+            });
+            })()}
           </View>
         )}
 
@@ -1544,5 +1563,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     fontStyle: 'italic',
+    marginTop: 8,
+  },
+  noResultsSubtext: {
+    fontSize: 12,
+    color: '#9ca3af',
+    marginTop: 4,
+  },
+  resultsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  refreshResultsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  refreshResultsText: {
+    fontSize: 12,
+    color: '#3b82f6',
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  spinningIcon: {
+    transform: [{ rotate: '360deg' }],
   },
 });

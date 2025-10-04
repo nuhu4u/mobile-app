@@ -1,6 +1,6 @@
 // API constants
 export const API_CONFIG = {
-  baseUrl: process.env.EXPO_PUBLIC_API_URL || 'http://192.168.137.1:3001/api',
+  baseUrl: process.env.EXPO_PUBLIC_API_URL || 'http://192.168.31.194:3001/api',
   timeout: 30000,
   retryAttempts: 3,
   retryDelay: 1000,

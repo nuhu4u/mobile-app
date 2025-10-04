@@ -5,8 +5,8 @@
 
 const POSSIBLE_IPS = [
   '192.168.137.1',  // Mobile hotspot IP (PRIORITY)
-  '192.168.18.55',  // Current network IP
-  '192.168.18.1',   // Current gateway IP
+  '192.168.31.194', // Current WiFi IP
+  '192.168.31.178', // Current gateway IP
   '192.168.18.2',   // Alternative gateway
   '192.168.18.100', // Common router IP
   '192.168.18.254', // Alternative router IP
@@ -110,8 +110,8 @@ export class NetworkDetector {
       // Get current network info (this would need to be implemented based on your platform)
       // For now, we'll scan common ranges
       const commonRanges = [
-        '192.168.18', // Current network - scan more thoroughly
-        '10.145.106', // Previous network
+        '192.168.31', // Current network - scan more thoroughly
+        '192.168.137', // Mobile hotspot network
         '192.168.1',  // Common home network
         '192.168.0',  // Alternative home network
         '10.0.0',     // Alternative network
@@ -121,7 +121,7 @@ export class NetworkDetector {
         console.log(`🔗 Scanning network range: ${range}.x`);
         
         // For current network, test more IPs
-        const isCurrentNetwork = range === '192.168.18';
+        const isCurrentNetwork = range === '192.168.31';
         const step = isCurrentNetwork ? 1 : 10; // Test every IP for current network
         
         // Test common IPs in this range
@@ -165,8 +165,8 @@ export class NetworkDetector {
     
     // Try multiple fallback URLs
     const fallbackIPs = [
-      '192.168.18.55',  // Current IP
-      '192.168.18.1',   // Gateway
+      '192.168.31.194', // Current WiFi IP
+      '192.168.31.178', // Gateway
       '10.0.2.2',       // Android emulator
       'localhost',       // Localhost
       '127.0.0.1',      // Loopback
@@ -186,7 +186,7 @@ export class NetworkDetector {
     
     // Last resort fallback
     console.warn('⚠️ Using last resort fallback API URL');
-    return 'http://192.168.18.55:3001/api';
+    return 'http://192.168.31.194:3001/api';
   }
   
   /**

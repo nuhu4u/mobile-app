@@ -4,12 +4,13 @@
  */
 
 import * as React from 'react';
-import { View, Text, ScrollView, Pressable, Alert, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useElectionStore } from '../../store/election-store';
 import { useAuthStore } from '../../store/auth-store';
 import { Election, Contestant } from '../../types/election';
 import { formatDate, formatDateTime } from '../../lib/utils';
+import { getPartyPictureWithFallback } from '../../lib/utils/party-utils';
 
 interface ElectionDetailsProps {
   electionId: string;
@@ -289,17 +290,25 @@ function CandidatesTab({ candidates }: CandidatesTabProps) {
   return React.createElement(View, { style: styles.candidatesContainer },
     candidates.map((candidate) => 
       React.createElement(View, { key: candidate.id, style: styles.candidateCard },
-        React.createElement(View, { style: styles.candidateContent },
-          React.createElement(View, { style: styles.candidateAvatar },
-            React.createElement(Text, { style: styles.avatarText }, candidate.name.charAt(0))
-          ),
-          
-          React.createElement(View, { style: styles.candidateInfo },
-            React.createElement(Text, { style: styles.candidateName }, candidate.name),
-            React.createElement(Text, { style: styles.candidateParty },
-              `${candidate.party} (${candidate.party_acronym})`),
-            React.createElement(Text, { style: styles.candidatePosition }, candidate.position)
-          ),
+          React.createElement(View, { style: styles.candidateContent },
+            React.createElement(View, { style: styles.candidateAvatar },
+              (() => {
+                const partyPicture = getPartyPictureWithFallback(candidate.name, candidate.party);
+                return partyPicture ? 
+                  React.createElement(Image, { 
+                    source: partyPicture, 
+                    style: styles.partyLogo 
+                  }) :
+                  React.createElement(Text, { style: styles.avatarText }, candidate.name.charAt(0));
+              })()
+            ),
+            
+            React.createElement(View, { style: styles.candidateInfo },
+              React.createElement(Text, { style: styles.candidateName }, candidate.name),
+              React.createElement(Text, { style: styles.candidateParty },
+                candidate.party || 'Independent'),
+              React.createElement(Text, { style: styles.candidatePosition }, candidate.position || 'Candidate')
+            ),
           
           React.createElement(View, { style: styles.candidateVotes },
             React.createElement(Text, { style: styles.voteCount }, candidate.votes.toLocaleString()),
@@ -800,6 +809,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#9ca3af',
     marginTop: 8
+  },
+  partyLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   }
 });
 

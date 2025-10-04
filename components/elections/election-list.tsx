@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, Pressable, RefreshControl, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card, Badge, Loading, Error, SkeletonList } from '@/components/ui';
 import { useElectionStore } from '@/store/election-store';
 import { Election, ElectionStatus } from '@/types/election';
 import { formatDate, formatDateTime } from '@/lib/utils';
+import { getPartyPictureWithFallback } from '@/lib/utils/party-utils';
 
 interface ElectionListProps {
   onElectionPress: (election: Election) => void;
@@ -199,15 +200,25 @@ function ElectionCard({ election, onPress, statusColor, statusIcon }: ElectionCa
           <View className="flex-row items-center">
             <Ionicons name="people" size={16} color="#6b7280" />
             <Text className="text-sm text-gray-600 ml-2">
-              {election.total_votes} votes cast
+              {election.total_votes || 0} votes cast
             </Text>
           </View>
 
-          {election.contestants.length > 0 && (
+          {election.contestants && election.contestants.length > 0 && (
             <View className="flex-row items-center">
               <Ionicons name="person" size={16} color="#6b7280" />
               <Text className="text-sm text-gray-600 ml-2">
                 {election.contestants.length} candidates
+              </Text>
+            </View>
+          )}
+
+          {election.contestants && election.contestants.length > 0 && (
+            <View className="flex-row items-center mt-2">
+              <Text className="text-xs text-gray-500">Leading: </Text>
+              <Text className="text-xs text-gray-700 font-medium">
+                {election.contestants
+                  .sort((a: any, b: any) => (b.votes || 0) - (a.votes || 0))[0]?.name || 'No votes yet'}
               </Text>
             </View>
           )}
@@ -226,7 +237,7 @@ function ElectionCard({ election, onPress, statusColor, statusIcon }: ElectionCa
           <View className="flex-row items-center">
             <Ionicons name="location" size={16} color="#6b7280" />
             <Text className="text-sm text-gray-600 ml-2">
-              {election.state_id || 'National'}
+              {election.election_type || 'National'}
             </Text>
           </View>
 

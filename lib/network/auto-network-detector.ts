@@ -81,6 +81,19 @@ class AutoNetworkDetector {
   }
 
   /**
+   * Disable auto network detection to prevent loops
+   */
+  async disable(): Promise<void> {
+    if (this.unsubscribe) {
+      this.unsubscribe();
+      this.unsubscribe = null;
+    }
+    this.isMonitoring = false;
+    this.isScanning = false;
+    console.log('🔄 Auto network detection disabled');
+  }
+
+  /**
    * Start monitoring network changes
    */
   private startMonitoring(): void {
@@ -121,21 +134,21 @@ class AutoNetworkDetector {
     }
 
     if (isConnected && previousSSID === null) {
-      // Connection restored
+      // Connection restored - only scan once
       this.emitEvent({
         type: 'connection_restored',
         currentSSID: currentSSID || undefined,
         timestamp: Date.now()
       });
 
-      if (this.config.scanOnConnectionRestore && isWifi) {
+      if (this.config.scanOnConnectionRestore && isWifi && !this.isScanning) {
         await this.scanForBackend();
       }
       return;
     }
 
     if (isWifi && previousSSID && previousSSID !== currentSSID) {
-      // WiFi network changed
+      // WiFi network changed - only scan once
       this.emitEvent({
         type: 'wifi_change',
         previousSSID,
@@ -143,7 +156,7 @@ class AutoNetworkDetector {
         timestamp: Date.now()
       });
 
-      if (this.config.scanOnWifiChange) {
+      if (this.config.scanOnWifiChange && !this.isScanning) {
         await this.scanForBackend();
       }
     }

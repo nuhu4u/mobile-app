@@ -139,40 +139,6 @@ class DashboardService {
     }
   }
 
-  async refreshElectionData(): Promise<{ success: boolean; data?: Election[]; error?: string }> {
-    try {
-      console.log('🔄 DashboardService: Refreshing election data...');
-      
-      const headers = await this.getAuthHeaders();
-      const response = await fetch(`${apiConfig.baseUrl}/elections/active`, {
-        method: 'GET',
-        headers,
-      });
-
-      if (!response.ok) {
-        console.log('⚠️ DashboardService: Elections endpoint returned:', response.status, response.statusText);
-        // Return empty array but don't treat as error
-        return {
-          success: true,
-          data: [],
-        };
-      }
-
-      const data = await response.json();
-      console.log('🗳️ DashboardService: Election data:', data);
-
-      return {
-        success: true,
-        data: data.elections || data || [],
-      };
-    } catch (error) {
-      console.error('❌ DashboardService: Error refreshing elections:', error);
-      return {
-        success: true, // Don't fail the whole app for elections
-        data: [],
-      };
-    }
-  }
 
   async getVoteHistory(): Promise<{ success: boolean; data?: Vote[]; error?: string }> {
     try {
@@ -241,6 +207,43 @@ class DashboardService {
           nonVoters: 0,
           turnoutPercentage: 0,
         },
+      };
+    }
+  }
+
+  async fetchElectionResults(electionId: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      console.log('📈 DashboardService: Fetching election results...');
+      
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${apiConfig.baseUrl}/elections/${electionId}/results`, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('📈 DashboardService: Results data:', data);
+
+      if (data.success) {
+        return {
+          success: true,
+          data: data.data,
+        };
+      } else {
+        return {
+          success: false,
+          error: data.message || 'Failed to fetch election results',
+        };
+      }
+    } catch (error) {
+      console.error('❌ DashboardService: Error fetching election results:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error',
       };
     }
   }

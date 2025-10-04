@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import AutoNetworkStatus from '@/components/network/auto-network-status';
+// Auto network detection removed - using stable hotspot connection
 import { useAuthStore } from '@/store/auth-store';
+import { dashboardService } from '@/lib/api/dashboard-service';
 
 export default function HomePage() {
   const { isAuthenticated } = useAuthStore();
@@ -19,39 +20,32 @@ export default function HomePage() {
     }
   }, [isAuthenticated]);
 
-  // Mock data for now - will replace with API calls
+  // Fetch real election data
   useEffect(() => {
-    setTimeout(() => {
-      setElections([
-        {
-          _id: '1',
-          title: 'Senatorial Election 2025',
-          status: 'ONGOING',
-          total_votes: 0,
-          contestants: [
-            { name: 'Adebayo Ogundimu', votes: 0 },
-            { name: 'Sarah Johnson', votes: 0 },
-            { name: 'Michael Adebayo', votes: 0 },
-            { name: 'Fatima Ibrahim', votes: 0 }
-          ]
-        },
-        {
-          _id: '2',
-          title: 'Governorship Election 2025',
-          status: 'ONGOING',
-          total_votes: 3,
-          contestants: [
-            { name: 'Adebayo Ogundimu', votes: 2 },
-            { name: 'Sarah Johnson', votes: 1 },
-            { name: 'Michael Adebayo', votes: 0 },
-            { name: 'Fatima Ibrahim', votes: 0 }
-          ]
-        }
-      ]);
-      setLoading(false);
-      setLastUpdated(new Date());
-    }, 2000);
+    fetchElections();
   }, []);
+
+  const fetchElections = async () => {
+    setLoading(true);
+    try {
+      console.log('🏠 HomePage: Fetching elections from API...');
+      const response = await dashboardService.getDashboardData();
+      
+      if (response.success && response.data?.activeElections) {
+        console.log('✅ HomePage: Elections fetched successfully:', response.data.activeElections.length);
+        setElections(response.data.activeElections);
+        setLastUpdated(new Date());
+      } else {
+        console.log('⚠️ HomePage: No elections data received');
+        setElections([]);
+      }
+    } catch (err: any) {
+      console.error('❌ HomePage: Error fetching elections:', err);
+      setElections([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter active elections
   const activeElections = elections.filter(election =>
@@ -92,10 +86,7 @@ export default function HomePage() {
           </View>
         </View>
         
-        {/* Network Status */}
-        <View style={styles.networkStatusContainer}>
-          <AutoNetworkStatus showDetails={true} />
-        </View>
+        {/* Network Status - Auto detection removed, using stable hotspot */}
       </View>
 
       {/* Hero Section */}
@@ -250,7 +241,7 @@ export default function HomePage() {
               const totalVotes = election.total_votes || election.contestants?.reduce((sum: number, c: any) => sum + (c.votes || 0), 0) || 0;
 
               return (
-                <View key={election._id || index} style={styles.electionCard}>
+                <View key={election.id || election._id || index} style={styles.electionCard}>
                   <View style={styles.electionCardHeader}>
                     <View style={styles.electionCardTitleRow}>
                       <Ionicons name="checkmark-circle" size={24} color="#16a34a" />
@@ -302,7 +293,7 @@ export default function HomePage() {
                   <View style={styles.electionActions}>
                     <TouchableOpacity
                       style={styles.electionActionButton}
-                      onPress={() => router.push(`/results/${election._id}`)}
+                      onPress={() => router.push(`/results/${election.id || election._id}`)}
                     >
                       <View style={styles.electionActionContent}>
                         <Ionicons name="trending-up" size={16} color="white" />
@@ -405,10 +396,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingHorizontal: 16,
   },
-  networkStatusContainer: {
-    marginTop: 16,
-    paddingHorizontal: 4,
-  },
+  // networkStatusContainer removed - auto network detection disabled
   headerContent: {
     flexDirection: 'column',
     alignItems: 'center',

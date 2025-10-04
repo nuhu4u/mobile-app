@@ -1,23 +1,23 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
+import { ElectionDetails } from '@/components/elections/election-details';
 
 export default function ElectionDetailScreen() {
+  const { id } = useLocalSearchParams();
+
+  const handleVotePress = (election: any) => {
+    router.push(`/vote/${election.id}`);
+  };
+
+  const handleResultsPress = (election: any) => {
+    router.push(`/results/${election.id}`);
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Election Detail - Coming Soon</Text>
-    </View>
+    <ElectionDetails
+      electionId={id as string}
+      onVotePress={handleVotePress}
+      onResultsPress={handleResultsPress}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: {
-    fontSize: 18,
-    color: '#6b7280',
-  },
-});

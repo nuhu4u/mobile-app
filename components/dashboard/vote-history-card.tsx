@@ -58,8 +58,8 @@ export const VoteHistoryCard: React.FC<VoteHistoryCardProps> = ({
   const partyName = getPartyNameWithFallback(finalCandidate.name, finalCandidate.party);
   
   // Calculate candidate's vote percentage
-  const totalElectionVotes = election.contestants?.reduce((sum: number, candidate: any) => sum + (candidate.votes || 0), 0) || 0;
-  const candidateVotes = votedCandidate?.votes || 0;
+  const totalElectionVotes = election.contestants?.reduce((sum: number, candidate: any) => sum + (candidate.votes || candidate.vote_count || 0), 0) || 0;
+  const candidateVotes = votedCandidate?.votes || votedCandidate?.vote_count || 0;
   const votePercentage = totalElectionVotes > 0 ? ((candidateVotes / totalElectionVotes) * 100).toFixed(1) : '0.0';
   
   console.log(`📊 Vote History - Candidate: ${finalCandidate.name}, votes: ${candidateVotes}, totalElectionVotes: ${totalElectionVotes}, percentage: ${votePercentage}%`);

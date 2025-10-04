@@ -121,8 +121,8 @@ export default function ResultsScreen() {
     );
   }
 
-  const totalVotes = currentElection.contestants?.reduce((sum, candidate) => sum + (candidate.votes || 0), 0) || 0;
-  const sortedCandidates = [...(currentElection.contestants || [])].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+  const totalVotes = currentElection.contestants?.reduce((sum, candidate) => sum + (candidate.votes || candidate.vote_count || 0), 0) || 0;
+  const sortedCandidates = [...(currentElection.contestants || [])].sort((a, b) => (b.votes || b.vote_count || 0) - (a.votes || a.vote_count || 0));
 
   return (
     <View style={styles.container}>
@@ -186,10 +186,11 @@ export default function ResultsScreen() {
           
           {sortedCandidates.length > 0 ? (
             sortedCandidates.map((candidate, index) => {
-              console.log(`📊 Results Page - Candidate: ${candidate.name}, votes: ${candidate.votes}, totalVotes: ${totalVotes}`);
-              const percentage = totalVotes > 0 ? Math.round(((candidate.votes || 0) / totalVotes) * 100) : 0;
+              const candidateVotes = candidate.votes || candidate.vote_count || 0;
+              console.log(`📊 Results Page - Candidate: ${candidate.name}, votes: ${candidateVotes}, totalVotes: ${totalVotes}`);
+              const percentage = totalVotes > 0 ? Math.round((candidateVotes / totalVotes) * 100) : 0;
               console.log(`📊 Results Page - Calculated percentage: ${percentage}%`);
-              const isLeading = index === 0 && (candidate.votes || 0) > 0;
+              const isLeading = index === 0 && candidateVotes > 0;
               
               return (
                 <View key={candidate.id || index} style={styles.candidateRow}>
@@ -232,7 +233,7 @@ export default function ResultsScreen() {
                   </View>
                   
                   <View style={styles.candidateStats}>
-                    <Text style={styles.candidateVotes}>{(candidate.votes || 0).toLocaleString()}</Text>
+                    <Text style={styles.candidateVotes}>{candidateVotes.toLocaleString()}</Text>
                     <Text style={styles.candidatePercentage}>{percentage}%</Text>
                     <View style={styles.progressBar}>
                       <View style={[styles.progressFill, { width: `${percentage}%` }]} />
