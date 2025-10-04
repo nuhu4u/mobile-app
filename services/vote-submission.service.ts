@@ -5,6 +5,7 @@
 
 import { Alert } from 'react-native';
 import { Election, Contestant, Vote } from '../types/election';
+import { apiConfig } from '@/lib/config';
 
 export interface VoteSubmissionRequest {
   electionId: string;
@@ -193,10 +194,47 @@ export class VoteSubmissionService {
       return { valid: false, message: 'Submission expired' };
     }
 
-    // Check if user has already voted (mock implementation)
+    // Check if user has already voted in database
     const hasVoted = await this.checkExistingVote(request.electionId, request.voterId);
     if (hasVoted) {
       return { valid: false, message: 'User has already voted in this election' };
+    }
+
+    // Check if user has already voted on blockchain (requires contract address)
+    if (request.voterAddress && request.electionId) {
+      try {
+        // Get election contract address from backend
+        const electionResponse = await fetch(`${apiConfig.baseUrl}/elections/${request.electionId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${request.token}`
+          }
+        });
+
+        if (electionResponse.ok) {
+          const electionData = await electionResponse.json();
+          const contractAddress = electionData.contract_address;
+
+          if (contractAddress) {
+            console.log('🔗 VoteSubmissionService: Checking blockchain vote status...');
+            
+            // Import real blockchain service
+            const { realBlockchainService } = await import('@/lib/blockchain/real-blockchain-service');
+            
+            const hasVotedOnBlockchain = await realBlockchainService.hasVoterVoted(contractAddress, request.voterAddress);
+            
+            if (hasVotedOnBlockchain) {
+              return { valid: false, message: 'You have already voted in this election on the blockchain' };
+            }
+            
+            console.log('🔗 VoteSubmissionService: User has not voted on blockchain, proceeding...');
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ VoteSubmissionService: Could not check blockchain vote status:', error);
+        // Continue with validation if blockchain check fails
+      }
     }
 
     return { valid: true };
@@ -207,30 +245,114 @@ export class VoteSubmissionService {
    */
   private async submitToBlockchain(request: VoteSubmissionRequest): Promise<VoteSubmissionResponse> {
     try {
-      // Simulate blockchain submission delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Import real blockchain service
+      const { realBlockchainService } = await import('@/lib/blockchain/real-blockchain-service');
+      
+      console.log('🔗 VoteSubmissionService: Submitting to real blockchain:', {
+        electionId: request.electionId,
+        candidateId: request.candidateId,
+        voterAddress: request.voterAddress
+      });
 
-      // Mock blockchain transaction
-      const transactionHash = `0x${Math.random().toString(16).substr(2, 64)}`;
-      const blockNumber = Math.floor(Math.random() * 1000000) + 1000000;
+      // Get election contract address from backend
+      const electionResponse = await fetch(`${apiConfig.baseUrl}/elections/${request.electionId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${request.token}`
+        }
+      });
 
-      // Simulate 95% success rate
-      const isSuccess = Math.random() > 0.05;
-
-      if (isSuccess) {
-        return {
-          success: true,
-          transactionHash,
-          blockNumber,
-          message: 'Blockchain submission successful'
-        };
-      } else {
-        throw new Error('Blockchain network error');
+      if (!electionResponse.ok) {
+        throw new Error(`Failed to get election details: ${electionResponse.statusText}`);
       }
+
+      const electionData = await electionResponse.json();
+      const contractAddress = electionData.contract_address;
+
+      if (!contractAddress) {
+        throw new Error('Election contract address not found');
+      }
+
+      console.log('🔗 VoteSubmissionService: Using contract address:', contractAddress);
+
+      // Get user's private key from backend (encrypted)
+      const userResponse = await fetch(`${apiConfig.baseUrl}/users/profile`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${request.token}`
+        }
+      });
+
+      if (!userResponse.ok) {
+        throw new Error(`Failed to get user profile: ${userResponse.statusText}`);
+      }
+
+      const userData = await userResponse.json();
+      
+      if (!userData.encrypted_private_key) {
+        throw new Error('User wallet not found. Please contact administrator.');
+      }
+
+      // Connect wallet using encrypted private key
+      // Note: In production, this should be decrypted on the client side using user's password
+      const walletInfo = await realBlockchainService.connectWallet(userData.encrypted_private_key);
+      
+      console.log('🔗 VoteSubmissionService: Wallet connected:', walletInfo.address);
+
+      // Check if voter has already voted on the blockchain
+      const hasVotedOnBlockchain = await realBlockchainService.hasVoterVoted(contractAddress, walletInfo.address);
+      
+      if (hasVotedOnBlockchain) {
+        throw new Error('You have already voted in this election on the blockchain');
+      }
+      
+      console.log('🔗 VoteSubmissionService: User has not voted on blockchain, proceeding...');
+
+      // Check if voter is registered on the contract
+      const isRegistered = await realBlockchainService.isVoterRegistered(contractAddress, walletInfo.address);
+      
+      if (!isRegistered) {
+        console.log('🔗 VoteSubmissionService: Registering voter on contract...');
+        const registrationResult = await realBlockchainService.registerVoter(contractAddress);
+        
+        if (!registrationResult.success) {
+          throw new Error(`Voter registration failed: ${registrationResult.error}`);
+        }
+        
+        console.log('🔗 VoteSubmissionService: Voter registered successfully:', registrationResult.transactionHash);
+      }
+
+      // Cast vote on the blockchain
+      const voteResult = await realBlockchainService.castVote({
+        electionId: request.electionId,
+        candidateId: request.candidateId,
+        voterAddress: walletInfo.address,
+        contractAddress: contractAddress
+      });
+
+      if (!voteResult.success) {
+        throw new Error(`Vote casting failed: ${voteResult.error}`);
+      }
+
+      console.log('🔗 VoteSubmissionService: Vote cast successfully on blockchain:', {
+        transactionHash: voteResult.transactionHash,
+        blockNumber: voteResult.blockNumber,
+        gasUsed: voteResult.gasUsed
+      });
+
+      return {
+        success: true,
+        transactionHash: voteResult.transactionHash!,
+        blockNumber: voteResult.blockNumber!,
+        message: 'Real blockchain submission successful'
+      };
     } catch (error) {
+      console.error('❌ VoteSubmissionService: Real blockchain submission failed:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Blockchain submission failed'
+        error: error instanceof Error ? error.message : 'Real blockchain submission failed'
       };
     }
   }

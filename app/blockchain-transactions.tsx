@@ -9,46 +9,103 @@ export default function BlockchainTransactionsScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Mock data - will be replaced with API calls
-    setTimeout(() => {
-      setTransactions([
-        {
-          id: '1',
-          voteTime: '9/12/2025, 9:38:11 PM',
-          blockNumber: 68,
-          gasUsed: 'N/A',
-          transactionHash: '0x6fdce54b7b1b820f7396956b2ea98305c66a96ca4c31d7911281d718d2fb887d',
-          contractAddress: '0x7969c5eD335650692Bc04293B07F5BF2e7A673C0',
-          votePosition: 'N/A',
-          voteValue: 1,
-          status: 'Verified'
-        },
-        {
-          id: '2',
-          voteTime: '9/12/2025, 9:39:37 PM',
-          blockNumber: 69,
-          gasUsed: 'N/A',
-          transactionHash: '0x8d7885e4fd22a30a3aa7933e94bb67272869e8e3df6595a70931126ea3551e60',
-          contractAddress: '0x7969c5eD335650692Bc04293B07F5BF2e7A673C0',
-          votePosition: 'N/A',
-          voteValue: 1,
-          status: 'Verified'
-        },
-        {
-          id: '3',
-          voteTime: '9/12/2025, 10:23:04 PM',
-          blockNumber: 72,
-          gasUsed: 'N/A',
-          transactionHash: '0x84099c111fe09fbb2bfdad842e50de357e7998d5cde3e4409914635a4ddbec05',
-          contractAddress: '0x7969c5eD335650692Bc04293B07F5BF2e7A673C0',
-          votePosition: 'N/A',
-          voteValue: 1,
-          status: 'Verified'
-        }
-      ]);
-      setLoading(false);
-    }, 1000);
+    loadRealTransactions();
   }, []);
+
+  const loadRealTransactions = async () => {
+    try {
+      setLoading(true);
+      
+      // Import real blockchain service
+      const { realBlockchainService } = await import('@/lib/blockchain/real-blockchain-service');
+      
+      // Get user's vote history from backend
+      const response = await fetch('/api/users/vote-history', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getAuthToken()}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch vote history');
+      }
+
+      const voteHistory = await response.json();
+      
+      // Transform vote history to transaction format with real blockchain data
+      const transactions = await Promise.all(
+        voteHistory.map(async (vote: any, index: number) => {
+          try {
+            // Get real transaction details from blockchain
+            const txDetails = await realBlockchainService.getTransactionDetails(vote.transaction_hash);
+            
+            if (txDetails.success) {
+              return {
+                id: vote._id,
+                voteTime: new Date(vote.vote_timestamp).toLocaleString(),
+                blockNumber: txDetails.transaction.blockNumber,
+                gasUsed: txDetails.transaction.gasUsed || 'N/A',
+                transactionHash: vote.transaction_hash,
+                contractAddress: vote.contract_address || 'N/A',
+                votePosition: vote.vote_position || 'N/A',
+                voteValue: 1,
+                status: txDetails.transaction.status === 'success' ? 'Verified' : 'Failed'
+              };
+            } else {
+              // Fallback for transactions that can't be verified
+              return {
+                id: vote._id,
+                voteTime: new Date(vote.vote_timestamp).toLocaleString(),
+                blockNumber: vote.block_number || 'N/A',
+                gasUsed: vote.gas_used || 'N/A',
+                transactionHash: vote.transaction_hash,
+                contractAddress: vote.contract_address || 'N/A',
+                votePosition: vote.vote_position || 'N/A',
+                voteValue: 1,
+                status: 'Pending Verification'
+              };
+            }
+          } catch (error) {
+            console.error('Error fetching transaction details:', error);
+            // Fallback for errors
+            return {
+              id: vote._id,
+              voteTime: new Date(vote.vote_timestamp).toLocaleString(),
+              blockNumber: vote.block_number || 'N/A',
+              gasUsed: vote.gas_used || 'N/A',
+              transactionHash: vote.transaction_hash,
+              contractAddress: vote.contract_address || 'N/A',
+              votePosition: vote.vote_position || 'N/A',
+              voteValue: 1,
+              status: 'Pending Verification'
+            };
+          }
+        })
+      );
+
+      setTransactions(transactions);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading real transactions:', error);
+      // Fallback to empty state
+      setTransactions([]);
+      setLoading(false);
+    }
+  };
+
+  const getAuthToken = async (): Promise<string> => {
+    // Get auth token from storage
+    try {
+      const { useAuthStore } = await import('@/store/auth-store');
+      const { token } = useAuthStore.getState();
+      return token || '';
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+      return '';
+    }
+  };
 
   const electionStats = {
     totalVotes: 3,
