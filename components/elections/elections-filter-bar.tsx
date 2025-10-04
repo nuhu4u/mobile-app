@@ -31,12 +31,12 @@ export interface FilterQuickActionProps {
 }
 
 export interface FilterChipsProps {
-  chips: Array<{
+  chips: {
     key: string;
     label: string;
     value: string;
     onRemove: () => void;
-  }>;
+  }[];
   onClearAll: () => void;
   className?: string;
 }

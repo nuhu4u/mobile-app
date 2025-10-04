@@ -14,6 +14,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth-store';
 import { useBiometric } from '@/hooks/use-biometric';
+import EnhancedBiometricVotingModal from './EnhancedBiometricVotingModal';
+import { enhancedBiometricService } from '@/lib/biometric/enhanced-biometric-service';
 
 const { width, height } = Dimensions.get('window');
 
@@ -100,8 +102,9 @@ export const VotingModal: React.FC<VotingModalProps> = ({
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(height));
   const [biometricVerified, setBiometricVerified] = useState(false);
+  const [biometricModalVisible, setBiometricModalVisible] = useState(false);
   const { token } = useAuthStore();
-  const { verifyBiometricForVoting, isEnrolled } = useBiometric();
+  const { verifyBiometricForVoting } = useBiometric();
 
   React.useEffect(() => {
     if (isOpen) {
@@ -138,77 +141,95 @@ export const VotingModal: React.FC<VotingModalProps> = ({
   const handleVoteSubmission = async () => {
     if (!selectedCandidate || !election) return;
     
-    // Check if biometric is enrolled
-    if (!isEnrolled) {
+    // Check if biometric is enrolled using real biometric service
+    try {
+      const isEnrolled = await enhancedBiometricService.isBiometricEnrolled();
+      if (!isEnrolled) {
+        Alert.alert(
+          'Biometric Required',
+          'You must enroll your biometric fingerprint before voting. Please go to your profile to enroll.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+    } catch (error: any) {
+      console.error('❌ Error checking biometric enrollment:', error);
       Alert.alert(
-        'Biometric Required',
-        'You must enroll your biometric fingerprint before voting. Please go to your profile to enroll.',
+        'Biometric Check Failed',
+        'Unable to verify your biometric enrollment status. Please try again.',
         [{ text: 'OK' }]
       );
       return;
     }
 
-    // Verify biometric before voting
-    try {
-      Alert.alert(
-        'Biometric Verification',
-        'Please verify your identity with your fingerprint to cast your vote.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Verify & Vote', 
-            onPress: async () => {
-              try {
-                const biometricData = await verifyBiometricForVoting(election?.id);
-                setBiometricVerified(true);
-                await submitVoteWithBiometric(biometricData);
-              } catch (error: any) {
-                Alert.alert('Verification Failed', error.message || 'Biometric verification failed');
-              }
-            }
-          }
-        ]
-      );
-    } catch (error: any) {
-      console.error('Biometric verification error:', error);
-      Alert.alert('Error', 'Failed to verify biometric');
-    }
+    // Show biometric verification modal
+    setBiometricModalVisible(true);
   };
 
-  const submitVoteWithBiometric = async (biometricData: any) => {
+  const handleBiometricSuccess = async (verificationData: any) => {
+    console.log('✅ Biometric verification successful, proceeding with vote submission...');
+    setBiometricVerified(true);
+    await submitVoteWithBiometric(verificationData);
+  };
+
+  const handleBiometricError = (error: string) => {
+    console.error('❌ Biometric verification failed:', error);
+    Alert.alert(
+      'Verification Failed', 
+      error || 'Biometric verification failed. Please try again.'
+    );
+  };
+
+  const submitVoteWithBiometric = async (biometricVerification: any) => {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.148:3001/api'}/elections/${election.id}/vote`, {
+      console.log('🗳️ Submitting vote with enhanced biometric verification...');
+      console.log('🔐 Enhanced biometric verification data:', {
+        verified: biometricVerification.verified,
+        confidence: biometricVerification.confidence,
+        template_hash: biometricVerification.template_hash?.substring(0, 20) + '...',
+        finger_type: biometricVerification.finger_type,
+        verification_timestamp: biometricVerification.verification_timestamp,
+        device_id: biometricVerification.device_id
+      });
+
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.137.1:3001/api'}/elections/${election.id}/vote`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
+          'device-id': biometricVerification.device_id || 'unknown'
         },
         body: JSON.stringify({
           candidate_id: selectedCandidate,
-          biometric_hash: biometricData.biometric_hash,
-          device_id: biometricData.device_id,
-          timestamp: biometricData.timestamp,
+          // Enhanced biometric verification data
+          biometricVerification: biometricVerification,
+          fingerprintData: biometricVerification.template_hash, // For backward compatibility
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('❌ Vote submission failed:', errorData);
         throw new Error(errorData.message || 'Failed to cast vote');
       }
 
       const result = await response.json();
+      console.log('✅ Vote submission successful:', result);
       
       if (result.success) {
-        Alert.alert('Success', 'Your vote has been cast successfully with biometric verification!');
+        Alert.alert(
+          'Success', 
+          'Your vote has been cast successfully with real biometric verification!'
+        );
         onVoteSuccess?.();
         onClose();
       } else {
         throw new Error(result.message || 'Vote submission failed');
       }
     } catch (error: any) {
-      console.error('Vote submission error:', error);
+      console.error('❌ Vote submission error:', error);
       Alert.alert('Error', error.message || 'An error occurred while casting your vote');
     } finally {
       setIsSubmitting(false);
@@ -512,6 +533,17 @@ export const VotingModal: React.FC<VotingModalProps> = ({
           )}
         </ScrollView>
       </Animated.View>
+      
+      {/* Biometric Verification Modal */}
+      <EnhancedBiometricVotingModal
+        visible={biometricModalVisible}
+        onClose={() => setBiometricModalVisible(false)}
+        onSuccess={handleBiometricSuccess}
+        onError={handleBiometricError}
+        electionId={election?.id}
+        candidateId={selectedCandidate}
+        candidateName={election?.candidates?.find((c: any) => c._id === selectedCandidate)?.name || 'Unknown Candidate'}
+      />
     </Animated.View>
   );
 };

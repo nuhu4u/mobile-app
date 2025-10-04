@@ -103,15 +103,25 @@ export function VoteConfirmationIntegration({
   // Handle biometric verification
   const handleBiometricVerification = React.useCallback(async () => {
     try {
-      const verified = await verifyBiometric();
-      return verified;
+      // Use real biometric service instead of mock verification
+      const { realBiometricService } = await import('@/lib/biometric/real-biometric-service');
+      const result = await realBiometricService.verifyBiometricForVoting();
+      
+      if (result.success) {
+        return true;
+      } else {
+        const errorMessage = result.error || 'Biometric verification failed';
+        setError(errorMessage);
+        onError?.(errorMessage);
+        return false;
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Biometric verification failed';
       setError(errorMessage);
       onError?.(errorMessage);
       return false;
     }
-  }, [verifyBiometric, onError]);
+  }, [onError]);
 
   // Handle dialog close
   const handleClose = React.useCallback(() => {

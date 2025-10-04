@@ -123,12 +123,12 @@ export function Toast({
 }
 
 interface ToastContainerProps {
-  toasts: Array<{
+  toasts: {
     id: string;
     message: string;
     type?: 'success' | 'error' | 'warning' | 'info';
     duration?: number;
-  }>;
+  }[];
   onRemove: (id: string) => void;
 }
 

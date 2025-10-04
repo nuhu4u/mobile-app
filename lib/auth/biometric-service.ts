@@ -10,6 +10,7 @@ export interface BiometricStatus {
   biometric_data?: string;
   biometric_hash?: string;
   enrollment_verified?: boolean;
+  fingerprint_hash?: string;
 }
 
 export interface BiometricEnrollmentData {
@@ -71,7 +72,7 @@ class BiometricService {
   /**
    * Register biometric fingerprint for the current user (with double capture)
    */
-  async registerBiometric(fingerprint1: string, fingerprint2: string, userId: string): Promise<BiometricStatus> {
+  async registerBiometric(fingerprint1: string, fingerprint2: string, userId: string): Promise<BiometricStatus & { fingerprint_hash?: string }> {
     try {
       const token = this.getAuthToken();
       if (!token) {
@@ -149,7 +150,7 @@ class BiometricService {
       // Send data in the format expected by the backend
       const verificationRequest = {
         fingerprintData: fingerprintData, // Backend expects 'fingerprintData'
-        electionId: electionId || 'mock-election-id', // Backend requires electionId
+        electionId: electionId || 'unknown', // Backend requires electionId
         fingerprint_hash: biometricHash, // Additional hash for verification
         device_id: deviceId,
         user_id: userId,
@@ -268,13 +269,6 @@ class BiometricService {
     return `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  /**
-   * Mock fingerprint data generation (for testing)
-   */
-  generateMockFingerprintData(): string {
-    // In real implementation, this would come from device biometric sensor
-    return `fingerprint_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`;
-  }
 }
 
 export const biometricService = new BiometricService();

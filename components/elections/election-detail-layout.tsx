@@ -27,12 +27,12 @@ export interface ElectionDetailHeaderProps {
 export interface ElectionDetailTabsProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
-  tabs: Array<{
+  tabs: {
     key: string;
     label: string;
     icon: string;
     count?: number;
-  }>;
+  }[];
   className?: string;
 }
 

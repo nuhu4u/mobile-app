@@ -6,8 +6,8 @@
 import * as React from 'react';
 import { useElectionsPagination } from '@/hooks/use-elections-pagination';
 import { ElectionsPagination } from './elections-pagination';
-import { ElectionCard, ElectionCardGrid, ElectionCardList } from './election-cards';
-import { ElectionCardData } from './election-cards';
+import { ElectionCard, ElectionCardGrid, ElectionCardList , ElectionCardData } from './election-cards';
+
 
 export interface ElectionsPaginatedListProps {
   elections: ElectionCardData[];

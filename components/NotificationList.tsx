@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
-import apiService from '../services/apiService';
+import { apiConfig } from '../lib/config';
 
 interface Notification {
   _id: string;
@@ -36,19 +36,24 @@ const NotificationList: React.FC<NotificationListProps> = ({ userId, onNotificat
         setLoading(true);
       }
 
-      const response = await apiService.getNotifications(userId, { 
-        page: pageNum, 
-        limit: 20 
+      const response = await fetch(`${apiConfig.baseUrl}/notifications?page=${pageNum}&limit=20`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
       });
+      
+      const data = await response.json();
 
-      if (response.success) {
+      if (data.success) {
         if (refresh || pageNum === 1) {
-          setNotifications(response.data.notifications);
+          setNotifications(data.data.notifications);
         } else {
-          setNotifications(prev => [...prev, ...response.data.notifications]);
+          setNotifications(prev => [...prev, ...data.data.notifications]);
         }
         
-        setHasMore(response.data.pagination.page < response.data.pagination.pages);
+        setHasMore(data.data.pagination.page < data.data.pagination.pages);
       }
     } catch (error) {
       console.error('Error loading notifications:', error);

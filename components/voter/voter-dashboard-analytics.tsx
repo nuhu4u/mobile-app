@@ -54,11 +54,11 @@ export interface AnalyticsData {
     accountAge: number;
   };
   votingPatterns: {
-    monthlyVotes: Array<{ month: string; votes: number }>;
-    hourlyDistribution: Array<{ hour: number; votes: number }>;
-    categoryBreakdown: Array<{ category: string; votes: number; percentage: number }>;
-    partyBreakdown: Array<{ party: string; votes: number; percentage: number }>;
-    methodBreakdown: Array<{ method: string; votes: number; percentage: number }>;
+    monthlyVotes: { month: string; votes: number }[];
+    hourlyDistribution: { hour: number; votes: number }[];
+    categoryBreakdown: { category: string; votes: number; percentage: number }[];
+    partyBreakdown: { party: string; votes: number; percentage: number }[];
+    methodBreakdown: { method: string; votes: number; percentage: number }[];
   };
   trends: {
     votingFrequency: number;
@@ -68,7 +68,7 @@ export interface AnalyticsData {
     peakVotingHour: number;
     averageVotesPerMonth: number;
   };
-  achievements: Array<{
+  achievements: {
     id: string;
     title: string;
     description: string;
@@ -76,14 +76,14 @@ export interface AnalyticsData {
     unlocked: boolean;
     unlockedAt?: string;
     progress?: number;
-  }>;
-  insights: Array<{
+  }[];
+  insights: {
     id: string;
     type: 'info' | 'warning' | 'success' | 'tip';
     title: string;
     message: string;
     action?: string;
-  }>;
+  }[];
 }
 
 export interface AnalyticsCardProps {
@@ -101,7 +101,7 @@ export interface AnalyticsCardProps {
 }
 
 export interface ChartProps {
-  data: Array<{ label: string; value: number; color?: string }>;
+  data: { label: string; value: number; color?: string }[];
   type: 'bar' | 'line' | 'pie' | 'doughnut';
   title: string;
   subtitle?: string;

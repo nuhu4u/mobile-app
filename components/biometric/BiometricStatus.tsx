@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth-store';
 import { apiConfig } from '@/lib/config';
+import { realBiometricService } from '@/lib/biometric/real-biometric-service';
+import { BiometricEnrollmentModal } from './BiometricEnrollmentModal';
 
 interface BiometricStatusProps {
   showMobileCTA?: boolean;
@@ -24,6 +26,7 @@ interface BiometricStatus {
   biometric_registered_at: string | null;
   biometric_consent: boolean;
   biometric_failed_attempts: number;
+  fingerprint_hash?: string;
 }
 
 export function BiometricStatusComponent({ 
@@ -36,6 +39,7 @@ export function BiometricStatusComponent({
   const [status, setStatus] = useState<BiometricStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [enrollmentModalVisible, setEnrollmentModalVisible] = useState(false);
 
   useEffect(() => {
     loadBiometricStatus();
@@ -129,7 +133,7 @@ export function BiometricStatusComponent({
     return 'Biometric fingerprint required for voting';
   };
 
-  const handleEnrollPress = () => {
+  const handleEnrollPress = async () => {
     if (compact) {
       // For dashboard - just show info
       Alert.alert(
@@ -144,20 +148,113 @@ export function BiometricStatusComponent({
         ]
       );
     } else {
-      // For profile - show enrollment options
-      Alert.alert(
-        'Biometric Enrollment',
-        'Register your fingerprint for secure voting. This will encrypt and store your biometric data securely.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Enroll Now', onPress: () => {
-            console.log('Start biometric enrollment process');
-            // TODO: Implement actual biometric enrollment
-            Alert.alert('Coming Soon', 'Biometric enrollment feature will be available soon.');
-          }}
-        ]
-      );
+      // For profile - start real biometric enrollment
+      try {
+        // Check biometric availability first
+        const availability = await realBiometricService.checkBiometricAvailability();
+        
+        if (!availability.hasHardware) {
+          Alert.alert(
+            'Not Supported',
+            'Your device does not support biometric authentication.'
+          );
+          return;
+        }
+
+        if (!availability.isEnrolled) {
+          Alert.alert(
+            'Not Enrolled',
+            'Please enroll your fingerprint or face in your device settings before using biometric authentication.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Go to Settings', onPress: () => {
+                // In a real app, you might want to open device settings
+                console.log('Open device settings');
+              }}
+            ]
+          );
+          return;
+        }
+
+        // Start enrollment modal
+        setEnrollmentModalVisible(true);
+      } catch (error: any) {
+        Alert.alert(
+          'Error',
+          error.message || 'Failed to check biometric availability'
+        );
+      }
     }
+  };
+
+  const handleEnrollmentSuccess = async (result: any) => {
+    console.log('✅ Biometric enrollment successful:', result);
+    setEnrollmentModalVisible(false);
+    
+    // Refresh biometric status
+    console.log('🔄 Refreshing biometric status after enrollment...');
+    await loadBiometricStatus();
+    console.log('🔄 Biometric status refreshed');
+    
+    // Notify parent component
+    if (onStatusChange) {
+      onStatusChange(result.data);
+    }
+    
+    Alert.alert(
+      'Success',
+      'Biometric enrollment completed successfully! You can now vote securely.'
+    );
+  };
+
+  const handleEnrollmentError = (error: string) => {
+    console.error('❌ Biometric enrollment failed:', error);
+    setEnrollmentModalVisible(false);
+    
+    Alert.alert(
+      'Enrollment Failed',
+      error || 'Biometric enrollment failed. Please try again.'
+    );
+  };
+
+  const handleTestBiometric = async () => {
+    try {
+      const result = await realBiometricService.testBiometricAuthentication();
+      
+      if (result.success) {
+        Alert.alert('Success', 'Biometric authentication test successful!');
+      } else {
+        Alert.alert('Failed', result.error || 'Biometric test failed');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Biometric test failed');
+    }
+  };
+
+  const handleDeleteBiometric = async () => {
+    Alert.alert(
+      'Delete Biometric',
+      'Are you sure you want to delete your biometric registration? You will need to re-enroll to vote.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: async () => {
+          try {
+            const result = await realBiometricService.deleteBiometricEnrollment();
+            
+            if (result.success) {
+              // Refresh biometric status
+              await loadBiometricStatus();
+              
+              Alert.alert('Success', 'Biometric registration deleted successfully.');
+            } else {
+              Alert.alert('Error', result.error || 'Failed to delete biometric registration');
+            }
+          } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to delete biometric registration');
+          }
+        }}
+      ]
+    );
   };
 
   // If showOnlyIfNotEnrolled is true and user is enrolled, don't render
@@ -186,7 +283,8 @@ export function BiometricStatusComponent({
   }
 
   return (
-    <View style={[styles.container, compact && styles.compactContainer]}>
+    <>
+      <View style={[styles.container, compact && styles.compactContainer]}>
       {/* Warning Message for Not Enrolled */}
       {!status?.biometric_registered && (
         <View style={styles.warningAlert}>
@@ -261,39 +359,21 @@ export function BiometricStatusComponent({
           {/* Actions for enrolled users in profile */}
           {!compact && (
             <View style={styles.enrolledActions}>
-              <TouchableOpacity 
-                style={styles.testButton}
-                onPress={() => {
-                  Alert.alert('Biometric Test', 'Testing biometric verification...', [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Test', onPress: () => {
-                      Alert.alert('Coming Soon', 'Biometric test feature will be available soon.');
-                    }}
-                  ]);
-                }}
-              >
-                <Ionicons name="checkmark" size={16} color="#3b82f6" />
-                <Text style={styles.testButtonText}>Test Biometric</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.deleteButton}
-                onPress={() => {
-                  Alert.alert(
-                    'Delete Biometric',
-                    'Are you sure you want to delete your biometric registration? You will need to re-enroll to vote.',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'Delete', style: 'destructive', onPress: () => {
-                        Alert.alert('Coming Soon', 'Biometric deletion feature will be available soon.');
-                      }}
-                    ]
-                  );
-                }}
-              >
-                <Ionicons name="trash" size={16} color="#dc2626" />
-                <Text style={styles.deleteButtonText}>Delete Biometric</Text>
-              </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.testButton}
+                    onPress={handleTestBiometric}
+                  >
+                    <Ionicons name="checkmark" size={16} color="#3b82f6" />
+                    <Text style={styles.testButtonText}>Test Biometric</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.deleteButton}
+                    onPress={handleDeleteBiometric}
+                  >
+                    <Ionicons name="trash" size={16} color="#dc2626" />
+                    <Text style={styles.deleteButtonText}>Delete Biometric</Text>
+                  </TouchableOpacity>
             </View>
           )}
         </View>
@@ -314,6 +394,15 @@ export function BiometricStatusComponent({
         </View>
       )}
     </View>
+    
+    {/* Biometric Enrollment Modal */}
+    <BiometricEnrollmentModal
+      visible={enrollmentModalVisible}
+      onClose={() => setEnrollmentModalVisible(false)}
+      onSuccess={handleEnrollmentSuccess}
+      onError={handleEnrollmentError}
+    />
+    </>
   );
 }
 

@@ -61,10 +61,21 @@ export function VoteConfirmationDialog({
     }
   };
 
-  const handleBiometricVerification = () => {
-    // Mock biometric verification
-    setBiometricVerified(true);
-    setConfirmationStep('verify');
+  const handleBiometricVerification = async () => {
+    try {
+      // Use real biometric verification
+      const { realBiometricService } = await import('@/lib/biometric/real-biometric-service');
+      const result = await realBiometricService.verifyBiometricForVoting();
+      
+      if (result.success) {
+        setBiometricVerified(true);
+        setConfirmationStep('verify');
+      } else {
+        Alert.alert('Biometric Verification Failed', result.error || 'Please try again');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Biometric verification failed');
+    }
   };
 
   const handleClose = () => {

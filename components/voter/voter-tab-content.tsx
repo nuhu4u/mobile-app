@@ -64,13 +64,13 @@ export interface SearchAndFilterProps {
 
 export interface DataTableProps<T> {
   data: T[];
-  columns: Array<{
+  columns: {
     key: string;
     label: string;
     render?: (item: T) => React.ReactNode;
     sortable?: boolean;
     width?: string;
-  }>;
+  }[];
   onRowClick?: (item: T) => void;
   onSort?: (column: string, order: 'asc' | 'desc') => void;
   loading?: boolean;
@@ -351,13 +351,13 @@ export function ActionBar({
   actions,
   className = '',
 }: {
-  actions: Array<{
+  actions: {
     label: string;
     icon: React.ReactNode;
     onClick: () => void;
     variant?: 'primary' | 'secondary' | 'danger';
     disabled?: boolean;
-  }>;
+  }[];
   className?: string;
 }) {
   const getButtonClasses = (variant: string = 'secondary', disabled: boolean = false) => {
@@ -394,7 +394,7 @@ export function StatsCards({
   stats,
   className = '',
 }: {
-  stats: Array<{
+  stats: {
     label: string;
     value: string | number;
     icon: React.ReactNode;
@@ -403,7 +403,7 @@ export function StatsCards({
       value: number;
       direction: 'up' | 'down' | 'neutral';
     };
-  }>;
+  }[];
   className?: string;
 }) {
   const getColorClasses = (color: string) => {

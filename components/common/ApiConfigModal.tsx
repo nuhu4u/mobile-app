@@ -228,7 +228,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({
             <Text style={styles.helpContent}>
               • Make sure your backend server is running on port {port}
               {'\n'}• Use the same network as your mobile device
-              {'\n'}• Try "Auto-Detect" to find the server automatically
+              {'\n'}• Try &quot;Auto-Detect&quot; to find the server automatically
               {'\n'}• Common IPs: 192.168.1.x, 192.168.0.x, 172.20.10.x
             </Text>
           </View>

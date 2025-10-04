@@ -69,11 +69,11 @@ export function Checkbox({
 }
 
 interface CheckboxGroupProps {
-  options: Array<{
+  options: {
     value: string;
     label: string;
     disabled?: boolean;
-  }>;
+  }[];
   values: string[];
   onValuesChange: (values: string[]) => void;
   label?: string;

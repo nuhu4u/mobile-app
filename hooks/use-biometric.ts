@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { biometricService, BiometricStatus, BiometricEnrollmentData } from '@/lib/auth/biometric-service';
+import { biometricService, BiometricStatus } from '@/lib/auth/biometric-service';
+import { realBiometricService } from '@/lib/biometric/real-biometric-service';
+import { enhancedBiometricService } from '@/lib/biometric/enhanced-biometric-service';
 
 export interface UseBiometricReturn {
   biometricStatus: BiometricStatus | null;
@@ -40,33 +42,21 @@ export function useBiometric(): UseBiometricReturn {
     }
   };
 
-  const enrollBiometric = async (fingerprint1?: string, fingerprint2?: string) => {
+  const enrollBiometric = async (_fingerprint1?: string, _fingerprint2?: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Generate mock fingerprint data (in real app, this would come from device sensor)
-      const fp1 = fingerprint1 || biometricService.generateMockFingerprintData();
-      const fp2 = fingerprint2 || biometricService.generateMockFingerprintData();
+      // Use real biometric enrollment instead of mock data
+      console.log('⚠️ Deprecated: enrollBiometric with mock data. Use BiometricEnrollmentModal instead.');
       
-      // TODO: Get actual user ID from auth store
-      const userId = 'mock-user-id';
-
-      const result = await biometricService.registerBiometric(fp1, fp2, userId);
-      setBiometricStatus(result);
+      // For backward compatibility, just refresh status
+      await refreshStatus();
       
-      console.log('✅ Biometric enrollment successful with double capture');
+      console.log('✅ Biometric enrollment should be done via BiometricEnrollmentModal');
     } catch (err: any) {
       console.error('Failed to enroll biometric:', err);
-      
-      // Handle specific error cases
-      if (err.message && err.message.includes('already registered')) {
-        setError('Biometric is already enrolled for this user');
-        // Refresh status to show current enrollment
-        await refreshStatus();
-      } else {
-        setError(err.message || 'Failed to enroll biometric');
-      }
+      setError(err.message || 'Failed to enroll biometric');
       throw err;
     } finally {
       setLoading(false);
@@ -78,18 +68,19 @@ export function useBiometric(): UseBiometricReturn {
       setLoading(true);
       setError(null);
 
-      // Generate mock fingerprint data for verification
-      const fingerprintData = biometricService.generateMockFingerprintData();
+      // Use real biometric verification instead of mock data
+      console.log('⚠️ Deprecated: verifyBiometric with mock data. Use realBiometricService instead.');
       
-      const isVerified = await biometricService.verifyBiometric(fingerprintData);
+      // For backward compatibility, use real biometric service
+      const result = await realBiometricService.testBiometricAuthentication();
       
-      if (isVerified) {
-        console.log('✅ Biometric verification successful');
+      if (result.success) {
+        console.log('✅ Real biometric verification successful');
+        return true;
       } else {
-        console.log('❌ Biometric verification failed');
+        console.log('❌ Real biometric verification failed');
+        return false;
       }
-      
-      return isVerified;
     } catch (err: any) {
       console.error('Failed to verify biometric:', err);
       setError(err.message || 'Failed to verify biometric');
@@ -99,25 +90,40 @@ export function useBiometric(): UseBiometricReturn {
     }
   };
 
-  const verifyBiometricForVoting = async (electionId?: string): Promise<any> => {
+  const verifyBiometricForVoting = async (_electionId?: string): Promise<any> => {
     try {
       setLoading(true);
       setError(null);
 
-      // Generate mock fingerprint data for verification
-      const fingerprintData = biometricService.generateMockFingerprintData();
-      const userId = 'mock-user-id'; // TODO: Get from auth store
+      console.log('🗳️ Starting enhanced biometric verification for voting...');
+
+      // Use enhanced biometric service for voting verification
+      const result = await enhancedBiometricService.verifyUserBiometric();
       
-      const verificationData = await biometricService.verifyBiometricForVoting(fingerprintData, userId, electionId);
-      
-      if (verificationData) {
-        console.log('✅ Biometric verification for voting successful');
-        return verificationData;
+      if (result.success && result.verified) {
+        console.log('✅ Enhanced biometric verification for voting successful');
+        console.log('🔐 Verification data:', {
+          verified: result.verified,
+          confidence: result.confidence,
+          template_hash: result.template_hash?.substring(0, 20) + '...',
+          finger_type: result.finger_type,
+          verification_timestamp: result.verification_timestamp
+        });
+        
+        // Return in the format expected by voting modal
+        return {
+          verified: true,
+          confidence: result.confidence,
+          template_hash: result.template_hash,
+          finger_type: result.finger_type,
+          verification_timestamp: result.verification_timestamp,
+          device_id: 'mobile-device'
+        };
       } else {
-        throw new Error('Biometric verification failed');
+        throw new Error(result.error || 'Biometric verification failed');
       }
     } catch (err: any) {
-      console.error('Failed to verify biometric for voting:', err);
+      console.error('❌ Failed to verify biometric for voting:', err);
       setError(err.message || 'Failed to verify biometric for voting');
       throw err;
     } finally {
@@ -137,7 +143,7 @@ export function useBiometric(): UseBiometricReturn {
         ...prev,
         biometric_registered: false,
         biometric_registered_at: null,
-        biometric_data: undefined
+        biometric_data: ''
       } : null);
       
       console.log('✅ Biometric data deleted successfully');

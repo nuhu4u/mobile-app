@@ -55,11 +55,11 @@ export function Avatar({
 }
 
 interface AvatarGroupProps {
-  avatars: Array<{
+  avatars: {
     src?: string;
     alt?: string;
     fallback?: string;
-  }>;
+  }[];
   max?: number;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;

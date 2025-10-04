@@ -105,7 +105,7 @@ export default function HomePage() {
             Your Voice, Your Vote, Your Future
           </Text>
           <Text style={styles.heroSubtitle}>
-            Participate in Nigeria's most secure and transparent electronic voting system. Built on blockchain
+            Participate in Nigeria&apos;s most secure and transparent electronic voting system. Built on blockchain
             technology for maximum integrity.
           </Text>
           <View style={styles.heroButtons}>
@@ -329,8 +329,8 @@ export default function HomePage() {
               <Text style={styles.noElectionsTitle}>Next Scheduled Election</Text>
               <Text style={styles.noElectionsSubtitle}>2027 General Elections</Text>
               <Text style={styles.noElectionsDescription}>
-                Registration is currently open for the next general elections. Ensure you're registered to participate
-                in Nigeria's democratic process.
+                Registration is currently open for the next general elections. Ensure you&apos;re registered to participate
+                in Nigeria&apos;s democratic process.
               </Text>
               <TouchableOpacity
                 style={styles.registerNowButton}

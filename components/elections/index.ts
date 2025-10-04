@@ -105,8 +105,8 @@ export type {
 
 export type {
   SearchSuggestion,
-  SearchHistory,
-  SearchFilters,
+  SearchHistory as SearchHistoryType,
+  SearchFilters as SearchFiltersType,
   ElectionsSearchProps,
   SearchInputProps,
   SearchSuggestionsProps,
@@ -129,7 +129,7 @@ export type {
 } from './election-cards';
 
 export type {
-  PaginationInfo,
+  PaginationInfo as PaginationInfoType,
   PaginationProps,
   PaginationInfoProps,
   PaginationControlsProps,

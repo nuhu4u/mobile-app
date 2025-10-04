@@ -15,7 +15,7 @@ export interface CandidateDetails {
   votes: number
 }
 
-const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.148:3001';
+const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.137.1:3001';
 
 export const STATIC_CANDIDATES: CandidateDetails[] = [
   {
@@ -117,7 +117,7 @@ export const getPartyPicture = (partyInfo: string | { name?: string; id?: string
   
   console.log('🎨 Normalized party name:', partyName);
   
-  const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.148:3001';
+  const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.137.1:3001';
   
   // Match by party name/acronym to get the correct party picture
   if (partyName.includes('apc') || partyName.includes('all progressives congress')) {
@@ -176,7 +176,7 @@ const getPartyPictureByCandidateName = (candidateName: string): string => {
   const name = candidateName.toLowerCase();
   console.log('🎨 Normalized candidate name for fallback:', name);
   
-  const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.148:3001';
+  const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.137.1:3001';
   
   // Match by candidate name to get their specific party picture
   if (name.includes('adebayo') || name.includes('ogundimu')) {

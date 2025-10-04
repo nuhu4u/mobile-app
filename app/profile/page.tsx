@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/store/auth-store';
 import { apiConfig } from '@/lib/config';
-import { BiometricStatusComponent } from '@/components/biometric/BiometricStatus';
+import EnhancedBiometricStatus from '@/components/biometric/EnhancedBiometricStatus';
 
 export default function ProfileScreen() {
   const { user, isAuthenticated, logout, token } = useAuthStore();
@@ -480,9 +480,9 @@ export default function ProfileScreen() {
                 <Text style={styles.infoValue}>
                   {user?.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : 'Not provided'}
                 </Text>
-              </View>
-            </View>
-            
+          </View>
+        </View>
+
             <View style={styles.infoRow}>
               <Ionicons name="shield-checkmark" size={20} color="#64748b" />
               <View style={styles.infoContent}>
@@ -516,8 +516,8 @@ export default function ProfileScreen() {
                   </Text>
                   {!showNIN && !loadingNIN && (
                     <Text style={styles.ninHint}>
-                      Tap "Show NIN" to reveal your NIN number
-                    </Text>
+                      Tap &quot;Show NIN&quot; to reveal your NIN number
+                  </Text>
                   )}
                   {loadingNIN && (
                     <Text style={styles.ninHint}>
@@ -535,7 +535,7 @@ export default function ProfileScreen() {
                 <Text style={[styles.infoValue, styles.walletValue]}>
                   {user?.wallet_address || 'Not assigned'}
                 </Text>
-              </View>
+                  </View>
             </View>
             
             {user?.contract_address && (
@@ -547,8 +547,8 @@ export default function ProfileScreen() {
                     {user.contract_address}
                   </Text>
                 </View>
-              </View>
-            )}
+                  </View>
+                )}
             
             <View style={styles.infoRow}>
               <Ionicons name="checkmark-circle" size={20} color="#64748b" />
@@ -584,17 +584,17 @@ export default function ProfileScreen() {
                 <Text style={styles.infoValue}>
                   {user?.role || 'Voter'}
                 </Text>
-              </View>
+                </View>
             </View>
           </View>
         </View>
 
         {/* Biometric Security */}
         <View style={styles.section}>
-          <BiometricStatusComponent 
+          <EnhancedBiometricStatus 
             showMobileCTA={true}
             onStatusChange={(status) => {
-              console.log('🔐 Profile: Biometric status changed:', status);
+              console.log('🔐 Profile: Enhanced biometric status changed:', status);
             }}
           />
         </View>

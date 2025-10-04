@@ -208,42 +208,28 @@ class DashboardService {
 
   async getElectionStats(): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      console.log('📈 DashboardService: Fetching election stats...');
+      console.log('📈 DashboardService: Fetching election stats from voter dashboard...');
       
-      const headers = await this.getAuthHeaders();
-      const response = await fetch(`${apiConfig.baseUrl}/dashboard/stats`, {
-        method: 'GET',
-        headers,
-      });
-
-      if (!response.ok) {
-        console.log('⚠️ DashboardService: Stats endpoint returned:', response.status, response.statusText);
-        // Try to get stats from dashboard data instead
-        const dashboardResponse = await this.getDashboardData();
-        if (dashboardResponse.success && dashboardResponse.data?.stats) {
-          return {
-            success: true,
-            data: dashboardResponse.data.stats,
-          };
-        }
-        // Return empty stats if no data available
+      // Get stats from voter dashboard data instead of admin-only endpoint
+      const dashboardResponse = await this.getDashboardData();
+      if (dashboardResponse.success && dashboardResponse.data?.stats) {
+        console.log('📈 DashboardService: Stats from dashboard data:', dashboardResponse.data.stats);
         return {
           success: true,
-          data: {
-            totalRegisteredVoters: 0,
-            totalVotesCast: 0,
-            nonVoters: 0,
-            turnoutPercentage: 0,
-          },
+          data: dashboardResponse.data.stats,
         };
       }
-
-      const data = await response.json();
-      console.log('📈 DashboardService: Stats data:', data);
-
+      
+      // Return default stats if no data available
+      console.log('📈 DashboardService: No stats available, returning defaults');
       return {
         success: true,
-        data: data.stats || data,
+        data: {
+          totalRegisteredVoters: 0,
+          totalVotesCast: 0,
+          nonVoters: 0,
+          turnoutPercentage: 0,
+        },
       };
     } catch (error) {
       console.error('❌ DashboardService: Error fetching stats:', error);
